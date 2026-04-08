@@ -4,6 +4,7 @@
   "description": "TerraMind Core — Global disaster intelligence platform. Real-time aggregation of USGS Earthquakes, NASA EONET Wildfires/Storms, NOAA Weather Alerts, and NASA FIRMS Fire Detection into a unified API with interactive dashboard and AI-powered GeoScience assistant.",
   "main": "dist/api/server.js",
   "scripts": {
+    "setup": "node setup.js",
     "dev": "tsx watch src/api/server.ts",
     "build": "tsc",
     "start": "node dist/api/server.js",

@@ -76,27 +76,52 @@ terramind-core/
 
 ---
 
-## Quick Start
+## ⚡ One-Line Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/terramind-core.git
+git clone https://github.com/masood1996-geo/terramind-core.git && cd terramind-core && node setup.js
+```
+
+The interactive setup wizard will:
+
+1. **Guide you** through getting free API keys (with direct links)
+2. **Create your `.env`** file automatically
+3. **Install dependencies**
+4. **Start the server** — dashboard opens at `http://localhost:4100`
+
+> **No API keys needed to start!** USGS, NASA EONET, and NOAA work without any keys. The wizard helps you optionally enable NASA FIRMS fire detection and the AI assistant.
+
+<details>
+<summary><strong>Manual Setup (Advanced)</strong></summary>
+
+```bash
+# Clone
+git clone https://github.com/masood1996-geo/terramind-core.git
 cd terramind-core
 
-# Install dependencies
-pnpm install
-
-# Configure environment (optional — works without keys)
+# Configure
 cp .env.example .env
-# Edit .env with your FIRMS_MAP_KEY and/or KILOCODE_API_KEY
+# Edit .env — add your FIRMS_MAP_KEY and/or KILOCODE_API_KEY
 
-# Start development server
+# Install & run
+pnpm install
 pnpm dev
 
-# Open dashboard
-# → http://localhost:4100
+# Open http://localhost:4100
+```
 
-# Run tests
+</details>
+
+### Where to Get API Keys
+
+| Key | Free? | Link | What It Enables |
+|-----|-------|------|-----------------|
+| **NASA FIRMS MAP_KEY** | ✅ Free | [Get key →](https://firms.modaps.eosdis.nasa.gov/api/area/) | Global satellite fire detection (VIIRS, 375m) |
+| **Kilo Gateway API Key** | ✅ Free tier | [Get key →](https://app.kilo.ai) | AI-powered GeoScience chat assistant |
+
+### Run Tests
+
+```bash
 pnpm test
 ```
 
