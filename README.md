@@ -9,6 +9,7 @@ TerraMind fuses USGS Earthquakes, NASA EONET Wildfires, NOAA Weather Alerts, and
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![AI Powered](https://img.shields.io/badge/AI-GeoScience%20Chat-FF6F00?style=for-the-badge&logo=openai&logoColor=white)]()
 [![Data Sources](https://img.shields.io/badge/Sources-4%20Gov%20APIs-blueviolet?style=for-the-badge)]()
+[![Live Demo](https://img.shields.io/badge/%F0%9F%A4%97_Demo-Live_on_HuggingFace-orange?style=for-the-badge)](https://huggingface.co/spaces/masood1996/terramind-core)
 
 ---
 
@@ -23,6 +24,12 @@ TerraMind fuses USGS Earthquakes, NASA EONET Wildfires, NOAA Weather Alerts, and
 ```
 
 </div>
+---
+
+## 🎮 Try it Live
+> **No installation needed — [try the live demo on Hugging Face](https://huggingface.co/spaces/masood1996/terramind-core)**
+>
+> Real earthquakes from USGS, real wildfires from NASA EONET, real weather alerts from NOAA — updated every 2 minutes.
 
 ---
 
