@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerraMind Core — Global Disaster Intelligence</title>
+  <meta name="description" content="Real-time global disaster event aggregation from USGS Earthquake and NASA EONET data sources.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+</head>
+<body>
+
+  <!-- Animated Background -->
+  <div class="bg-mesh"></div>
+  <div class="bg-grid"></div>
+
+  <div class="app-container">
+
+    <!-- ── Header ── -->
+    <header class="header" id="header">
+      <div class="header-brand">
+        <div class="logo-icon">🌍</div>
+        <div>
+          <h1>TerraMind Core</h1>
+        </div>
+        <span class="version-badge">v3.0</span>
+      </div>
+      <div class="header-meta">
+        <div class="status-dot" id="status-dot"></div>
+        <span class="status-text" id="status-text">Connecting…</span>
+        <span class="sweep-timer" id="sweep-timer" title="Time until next refresh"></span>
+        <span class="last-updated" id="last-updated"></span>
+        <button class="btn-refresh" id="btn-refresh" title="Refresh data (bypass cache)">
+          <span class="refresh-icon" id="refresh-icon">↻</span>
+          Refresh
+        </button>
+        <button class="btn-theme" id="btn-theme" title="Toggle light/dark mode">☀</button>
+      </div>
+    </header>
+
+    <!-- ── Stats Bar ── -->
+    <section class="stats-grid" id="stats-grid">
+      <div class="stat-card" id="stat-total">
+        <div class="stat-label">Total Events</div>
+        <div class="stat-value" id="stat-total-val">—</div>
+        <div class="stat-sub" id="stat-total-sub">Loading data…</div>
+      </div>
+      <div class="stat-card usgs-source" id="stat-usgs">
+        <div class="stat-label">USGS Earthquakes</div>
+        <div class="stat-value" id="stat-usgs-val">—</div>
+        <div class="stat-sub" id="stat-usgs-sub"></div>
+      </div>
+      <div class="stat-card nasa-source" id="stat-nasa">
+        <div class="stat-label">NASA EONET</div>
+        <div class="stat-value" id="stat-nasa-val">—</div>
+        <div class="stat-sub" id="stat-nasa-sub"></div>
+      </div>
+      <div class="stat-card firms-source" id="stat-firms">
+        <div class="stat-label">NASA FIRMS</div>
+        <div class="stat-value" id="stat-firms-val">—</div>
+        <div class="stat-sub" id="stat-firms-sub"></div>
+      </div>
+      <div class="stat-card critical" id="stat-critical">
+        <div class="stat-label">Critical / Major</div>
+        <div class="stat-value" id="stat-critical-val">—</div>
+        <div class="stat-sub" id="stat-critical-sub"></div>
+      </div>
+    </section>
+
+    <!-- ── Interactive Map ── -->
+    <section class="map-section" id="map-section">
+      <div class="map-header">
+        <h2>Global Event Map</h2>
+        <button class="map-toggle-btn" id="map-toggle-btn">Hide Map</button>
+      </div>
+      <div class="map-container" id="map-container">
+        <div id="terramind-map"></div>
+      </div>
+    </section>
+
+    <!-- ── Analytics Charts ── -->
+    <section class="analytics-section" id="analytics-section">
+      <div class="analytics-header">
+        <h2>Analytics</h2>
+        <button class="map-toggle-btn" id="analytics-toggle-btn">Hide Charts</button>
+      </div>
+      <div class="analytics-grid">
+        <div class="chart-card">
+          <h3>Severity Distribution</h3>
+          <div class="chart-wrapper">
+            <canvas id="severity-chart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Events by Source</h3>
+          <div class="chart-wrapper">
+            <canvas id="source-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ── Help: GeoScience Reference ── -->
+    <section class="help-section" id="help-section">
+      <div class="map-header">
+        <h2>Help — Satellite Data & Analysis</h2>
+        <button class="map-toggle-btn" id="help-toggle-btn">Show</button>
+      </div>
+      <div class="help-content" id="help-content" style="display:none">
+        <div class="geo-layers" id="help-layers">
+          <div class="geo-layer-card">
+            <div class="geo-layer-name">🔥 Fire / Burn Scars</div>
+            <div class="geo-layer-formula">NBR = (NIR − SWIR) / (NIR + SWIR)</div>
+            <div class="geo-layer-desc">Sentinel-2: (B8A−B12)/(B8A+B12) | Landsat: (B5−B7)/(B5+B7). Use dNBR = pre−post for severity. SWIR False Color: B12-B8A-B4.</div>
+          </div>
+          <div class="geo-layer-card">
+            <div class="geo-layer-name">🌍 Earthquake / Deformation</div>
+            <div class="geo-layer-formula">InSAR — Sentinel-1 SLC pairs</div>
+            <div class="geo-layer-desc">Phase difference pre/post quake → ground displacement. Coherence loss = building damage. Software: ESA SNAP, ISCE2. ASF DAAC for free SAR data.</div>
+          </div>
+          <div class="geo-layer-card">
+            <div class="geo-layer-name">🌊 Flood Mapping</div>
+            <div class="geo-layer-formula">NDWI = (Green − NIR) / (Green + NIR)</div>
+            <div class="geo-layer-desc">Sentinel-2: (B3−B8)/(B3+B8). SAR: Sentinel-1 VV < -15dB = water (works through clouds). Mask permanent water with JRC dataset.</div>
+          </div>
+          <div class="geo-layer-card">
+            <div class="geo-layer-name">🌋 Volcanic Activity</div>
+            <div class="geo-layer-formula">TIR + SO₂ Column (TROPOMI)</div>
+            <div class="geo-layer-desc">Landsat B10 for thermal anomalies. Sentinel-5P for SO₂ plumes. Sentinel-1 InSAR for magma deformation. MIROVA for real-time thermal alerts.</div>
+          </div>
+          <div class="geo-layer-card">
+            <div class="geo-layer-name">⛈️ Storm Damage</div>
+            <div class="geo-layer-formula">SAR Coherence + NDVI Change</div>
+            <div class="geo-layer-desc">Sentinel-1 pre/post coherence loss = structural damage. NDVI drop from vegetation stripping. GPM/IMERG for precipitation data.</div>
+          </div>
+          <div class="geo-layer-card">
+            <div class="geo-layer-name">🛰️ Free Data Portals</div>
+            <div class="geo-layer-formula">Copernicus · EarthExplorer · Worldview</div>
+            <div class="geo-layer-desc">
+              <a href="https://browser.dataspace.copernicus.eu" target="_blank" rel="noopener">Copernicus Browser</a> ·
+              <a href="https://earthexplorer.usgs.gov" target="_blank" rel="noopener">USGS EarthExplorer</a> ·
+              <a href="https://worldview.earthdata.nasa.gov" target="_blank" rel="noopener">NASA Worldview</a> ·
+              <a href="https://code.earthengine.google.com" target="_blank" rel="noopener">Google Earth Engine</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Chat -->
+        <div class="geo-section" style="margin-top:16px">
+          <h3 class="geo-heading">AI GeoScience Assistant</h3>
+          <p class="geo-desc">Ask about satellite bands, change detection methods, or data processing for any event.</p>
+          <div class="geo-chat" id="help-geo-chat">
+            <div class="geo-chat-messages" id="help-chat-messages"></div>
+            <div class="geo-chat-input-row">
+              <input type="text" id="help-chat-input" placeholder="e.g., How do I detect burn scars with Sentinel-2?" autocomplete="off" />
+              <button id="help-chat-send" class="geo-chat-btn">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Toolbar ── -->
+    <div class="toolbar" id="toolbar">
+      <div class="filter-group" id="filter-group">
+        <button class="filter-chip active" data-filter="all">
+          🌐 All <span class="chip-count" id="count-all">0</span>
+        </button>
+        <button class="filter-chip" data-filter="critical">
+          🔴 Critical <span class="chip-count" id="count-critical">0</span>
+        </button>
+        <button class="filter-chip" data-filter="major">
+          🟠 Major <span class="chip-count" id="count-major">0</span>
+        </button>
+        <button class="filter-chip" data-filter="moderate">
+          🔵 Moderate <span class="chip-count" id="count-moderate">0</span>
+        </button>
+        <button class="filter-chip" data-filter="minor">
+          🟢 Minor <span class="chip-count" id="count-minor">0</span>
+        </button>
+        <button class="filter-chip" data-filter="usgs">
+          🔬 USGS <span class="chip-count" id="count-usgs">0</span>
+        </button>
+        <button class="filter-chip" data-filter="nasa-eonet">
+          🛰️ NASA <span class="chip-count" id="count-nasa">0</span>
+        </button>
+        <button class="filter-chip" data-filter="noaa-nws">
+          🌩️ NOAA <span class="chip-count" id="count-noaa">0</span>
+        </button>
+        <button class="filter-chip" data-filter="nasa-firms">
+          🔥 FIRMS <span class="chip-count" id="count-firms">0</span>
+        </button>
+      </div>
+      <div class="toolbar-controls">
+        <!-- Category filter -->
+        <select id="category-select" class="sort-select" title="Filter by category">
+          <option value="all">🌍 All Categories</option>
+          <option value="fire">🔥 Fire</option>
+          <option value="seismic">🌋 Seismic</option>
+          <option value="flood">🌊 Flood</option>
+          <option value="storm">⛈️ Storm</option>
+          <option value="volcano">🌋 Volcano</option>
+          <option value="other">📋 Other</option>
+        </select>
+        <!-- Sort selector -->
+        <select id="sort-select" class="sort-select" title="Sort events">
+          <option value="time">⏱️ Newest First</option>
+          <option value="severity">🔴 Severity</option>
+          <option value="magnitude">📊 Magnitude</option>
+          <option value="title">🔤 Title A-Z</option>
+        </select>
+        <div class="view-toggle" id="view-toggle">
+          <button class="active" data-view="grid" title="Card view">▦</button>
+          <button data-view="table" title="Table view">☰</button>
+        </div>
+        <div class="search-box">
+          <span class="search-icon">⌕</span>
+          <input type="text" id="search-input" placeholder="Search events… (Ctrl+K)" autocomplete="off">
+        </div>
+        <!-- Export button -->
+        <button class="btn-export" id="btn-export" title="Export visible events">
+          ⬇ Export
+        </button>
+        <!-- Time range selector -->
+        <div class="time-range-group" id="time-range-group">
+          <button class="time-range-btn active" data-range="hour">Past Hour</button>
+          <button class="time-range-btn" data-range="day">Past Day</button>
+          <button class="time-range-btn" data-range="week">Past Week</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Severity Legend ── -->
+    <div class="severity-legend">
+      <div class="legend-item"><div class="legend-dot critical"></div> Critical</div>
+      <div class="legend-item"><div class="legend-dot major"></div> Major</div>
+      <div class="legend-item"><div class="legend-dot moderate"></div> Moderate</div>
+      <div class="legend-item"><div class="legend-dot minor"></div> Minor</div>
+    </div>
+
+    <!-- ── Events Container ── -->
+    <main id="events-container">
+      <div class="loading-container" id="loading-state">
+        <div class="skeleton-grid">
+          <div class="skeleton-card"><div class="skeleton-line w80"></div><div class="skeleton-line w50"></div><div class="skeleton-line w65"></div><div class="skeleton-line w40"></div></div>
+          <div class="skeleton-card"><div class="skeleton-line w60"></div><div class="skeleton-line w80"></div><div class="skeleton-line w45"></div><div class="skeleton-line w70"></div></div>
+          <div class="skeleton-card"><div class="skeleton-line w75"></div><div class="skeleton-line w55"></div><div class="skeleton-line w80"></div><div class="skeleton-line w35"></div></div>
+          <div class="skeleton-card"><div class="skeleton-line w50"></div><div class="skeleton-line w70"></div><div class="skeleton-line w60"></div><div class="skeleton-line w80"></div></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── Event Detail Modal ── -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-content" id="modal-content">
+        <button class="modal-close" id="modal-close">✕</button>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- ── Footer ── -->
+    <footer class="footer">
+      <div class="footer-text">
+        TerraMind Core — Real-time global disaster intelligence powered by
+        <a href="https://earthquake.usgs.gov" target="_blank" rel="noopener">USGS</a>,
+        <a href="https://eonet.gsfc.nasa.gov" target="_blank" rel="noopener">NASA EONET</a>,
+        <a href="https://www.weather.gov" target="_blank" rel="noopener">NOAA/NWS</a> &
+        <a href="https://firms.modaps.eosdis.nasa.gov" target="_blank" rel="noopener">NASA FIRMS</a>
+      </div>
+      <div class="footer-links">
+        <a href="/api/docs" target="_blank">📄 API Docs</a>
+        <a href="/api/events" target="_blank">📡 Raw JSON</a>
+        <a href="/api/stream" target="_blank">📡 SSE Stream</a>
+        <a href="/api/health" target="_blank">💚 Health</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // ─── State ──────────────────────────────────────────────────────────────
+    let allEvents = [];
+    let currentFilter = localStorage.getItem('tm-filter') || 'all';
+    let currentView = localStorage.getItem('tm-view') || 'grid';
+    let currentSort = localStorage.getItem('tm-sort') || 'time';
+    let currentTimeRange = localStorage.getItem('tm-timerange') || 'hour';
+    let currentSearch = '';
+    let currentCategory = localStorage.getItem('tm-category') || 'all';
+    let previousCriticalIds = new Set();
+    let isFirstLoad = true;
+    let leafletMap = null;
+    let mapMarkers = [];
+    let severityChart = null;
+    let sourceChart = null;
+    let nextSweepTime = null;
+    let sweepTimerInterval = null;
+
+    // ─── DOM References ─────────────────────────────────────────────────────
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => document.querySelectorAll(s);
+
+    const eventsContainer = $('#events-container');
+    const btnRefresh = $('#btn-refresh');
+    const searchInput = $('#search-input');
+    const sortSelect = $('#sort-select');
+
+    // Restore persisted state on load
+    sortSelect.value = currentSort;
+    const categorySelect = $('#category-select');
+    categorySelect.value = currentCategory;
+    // Activate persisted filter chip
+    $$('.filter-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.filter === currentFilter);
+    });
+    // Activate persisted view toggle
+    $$('#view-toggle button').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === currentView);
+    });
+
+    // ─── Severity Order (for sorting) ───────────────────────────────────────
+    const SEVERITY_ORDER = { critical: 0, major: 1, moderate: 2, minor: 3, unknown: 4 };
+
+    // ─── Fetch Events ───────────────────────────────────────────────────────
+    async function fetchEvents(bypassCache = false) {
+      btnRefresh.classList.add('loading');
+      $('#status-text').textContent = 'Fetching…';
+      $('#status-dot').style.background = '#f59e0b';
+
+      try {
+        const params = new URLSearchParams();
+        if (bypassCache) params.set('nocache', '1');
+        if (currentTimeRange !== 'hour') params.set('timeRange', currentTimeRange);
+        const url = '/api/events' + (params.toString() ? '?' + params.toString() : '');
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const cacheStatus = res.headers.get('X-Cache');
+
+        allEvents = data.events || [];
+
+        // Check for new critical events & send notifications
+        checkNewCriticalEvents();
+
+        updateStats(data, cacheStatus);
+        updateFilterCounts();
+        renderEvents();
+        updateMap();
+        updateCharts();
+        updateSourceHealth(data.sourceHealth || []);
+        updateDelta(data.delta);
+        updateSweepTimer(data.sweep);
+
+        $('#status-text').textContent = cacheStatus === 'HIT' ? 'Live (cached)' : 'Live';
+        $('#status-dot').style.background = '#22c55e';
+        $('#last-updated').textContent = new Date().toLocaleTimeString();
+        $('#refresh-icon').style.animation = '';
+
+        isFirstLoad = false;
+
+      } catch (err) {
+        console.error('Fetch failed:', err);
+        eventsContainer.innerHTML = `
+          <div class="error-container">
+            <div class="error-icon">⚠️</div>
+            <div class="error-title">Failed to load events</div>
+            <div class="error-message">${escapeHtml(err.message)}. Check if the API server is running.</div>
+            <button class="btn-refresh" id="btn-retry" style="margin-top:12px">
+              <span class="refresh-icon">↻</span> Retry
+            </button>
+          </div>
+        `;
+        $('#status-text').textContent = 'Error';
+        $('#status-dot').style.background = '#ef4444';
+        // Attach retry handler without inline onclick
+        const retryBtn = $('#btn-retry');
+        if (retryBtn) retryBtn.addEventListener('click', () => fetchEvents(true));
+      } finally {
+        btnRefresh.classList.remove('loading');
+      }
+    }
+
+    // ─── Browser Notifications ──────────────────────────────────────────────
+    function checkNewCriticalEvents() {
+      if (isFirstLoad) {
+        // Seed the set on first load, don't alert
+        allEvents.forEach(e => {
+          if (e.severity === 'critical') previousCriticalIds.add(e.id);
+        });
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+        return;
+      }
+
+      const newCritical = allEvents.filter(
+        e => e.severity === 'critical' && !previousCriticalIds.has(e.id)
+      );
+
+      newCritical.forEach(event => {
+        previousCriticalIds.add(event.id);
+
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('🔴 Critical Disaster Event', {
+            body: event.title,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌍</text></svg>',
+            tag: event.id,
+          });
+        }
+      });
+    }
+
+    // ─── Update Stats ───────────────────────────────────────────────────────
+    function updateStats(data, cacheStatus) {
+      animateNumber('stat-total-val', data.count || 0);
+      const cacheLabel = cacheStatus === 'HIT' ? ' (cached)' : '';
+      const sweepMs = data.sweep?.durationMs;
+      const sweepLabel = sweepMs ? ` in ${(sweepMs / 1000).toFixed(1)}s` : '';
+      $('#stat-total-sub').textContent = `Last sync: ${new Date(data.timestamp).toLocaleTimeString()}${cacheLabel}${sweepLabel}`;
+
+      const usgsCount = data.sources?.usgs?.count || 0;
+      const nasaCount = data.sources?.nasa?.count || 0;
+      const noaaCount = data.sources?.noaa?.count || 0;
+      const firmsCount = data.sources?.firms?.count || 0;
+
+      animateNumber('stat-usgs-val', usgsCount);
+      $('#stat-usgs-sub').textContent = `Status: ${data.sources?.usgs?.status || 'unknown'}`;
+
+      animateNumber('stat-nasa-val', nasaCount);
+      $('#stat-nasa-sub').textContent = `Status: ${data.sources?.nasa?.status || 'unknown'}`;
+
+      animateNumber('stat-firms-val', firmsCount);
+      const firmsStatus = data.sources?.firms?.status || 'disabled';
+      $('#stat-firms-sub').textContent = firmsStatus === 'disabled' ? 'No API key' : `Status: ${firmsStatus}`;
+
+      const criticalMajor = allEvents.filter(e => e.severity === 'critical' || e.severity === 'major').length;
+      animateNumber('stat-critical-val', criticalMajor);
+      $('#stat-critical-sub').textContent = criticalMajor > 0 ? 'Requires attention' : 'All clear';
+      
+      const critCard = $('#stat-critical');
+      if (criticalMajor > 0) {
+        critCard.classList.add('critical');
+      } else {
+        critCard.classList.remove('critical');
+      }
+    }
+
+    // ─── Animate Number Counter ─────────────────────────────────────────────
+    function animateNumber(id, target) {
+      const el = document.getElementById(id);
+      const start = parseInt(el.textContent) || 0;
+      const duration = 600;
+      const startTime = performance.now();
+
+      function tick(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(start + (target - start) * eased);
+        el.textContent = current;
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // ─── Update Filter Counts ───────────────────────────────────────────────
+    function updateFilterCounts() {
+      $('#count-all').textContent = allEvents.length;
+      $('#count-critical').textContent = allEvents.filter(e => e.severity === 'critical').length;
+      $('#count-major').textContent = allEvents.filter(e => e.severity === 'major').length;
+      $('#count-moderate').textContent = allEvents.filter(e => e.severity === 'moderate').length;
+      $('#count-minor').textContent = allEvents.filter(e => e.severity === 'minor').length;
+      $('#count-usgs').textContent = allEvents.filter(e => e.source === 'usgs').length;
+      $('#count-nasa').textContent = allEvents.filter(e => e.source === 'nasa-eonet').length;
+      $('#count-noaa').textContent = allEvents.filter(e => e.source === 'noaa-nws').length;
+      $('#count-firms').textContent = allEvents.filter(e => e.source === 'nasa-firms').length;
+      updateCategoryCounts();
+    }
+
+    // ─── Update Category Counts ─────────────────────────────────────────────
+    function updateCategoryCounts() {
+      const cats = { fire: 0, seismic: 0, flood: 0, storm: 0, volcano: 0, other: 0 };
+      allEvents.forEach(e => {
+        const t = e.eventType.toLowerCase();
+        if (t.includes('fire') || t.includes('wildfire')) cats.fire++;
+        else if (t.includes('earthquake') || t.includes('explosion') || t.includes('quarry') || t.includes('blast')) cats.seismic++;
+        else if (t.includes('flood') || t.includes('tsunami')) cats.flood++;
+        else if (t.includes('storm') || t.includes('hurricane') || t.includes('tornado') || t.includes('cyclone') || t.includes('typhoon') || t.includes('wind') || t.includes('thunder')) cats.storm++;
+        else if (t.includes('volcan')) cats.volcano++;
+        else cats.other++;
+      });
+
+      const sel = $('#category-select');
+      for (const opt of sel.options) {
+        const v = opt.value;
+        if (v === 'all') {
+          opt.textContent = `🌍 All Categories (${allEvents.length})`;
+        } else if (cats[v] !== undefined) {
+          const icons = { fire: '🔥', seismic: '🌋', flood: '🌊', storm: '⛈️', volcano: '🌋', other: '📋' };
+          const labels = { fire: 'Fire', seismic: 'Seismic', flood: 'Flood', storm: 'Storm', volcano: 'Volcano', other: 'Other' };
+          opt.textContent = `${icons[v]} ${labels[v]} (${cats[v]})`;
+        }
+      }
+    }
+
+    // ─── Filter & Sort Events ───────────────────────────────────────────────
+    function getFilteredEvents() {
+      let filtered = [...allEvents];
+
+      // Severity / source filter
+      if (currentFilter === 'usgs') {
+        filtered = filtered.filter(e => e.source === 'usgs');
+      } else if (currentFilter === 'nasa-eonet') {
+        filtered = filtered.filter(e => e.source === 'nasa-eonet');
+      } else if (currentFilter === 'noaa-nws') {
+        filtered = filtered.filter(e => e.source === 'noaa-nws');
+      } else if (currentFilter === 'nasa-firms') {
+        filtered = filtered.filter(e => e.source === 'nasa-firms');
+      } else if (currentFilter !== 'all') {
+        filtered = filtered.filter(e => e.severity === currentFilter);
+      }
+
+      // Category filter
+      if (currentCategory !== 'all') {
+        filtered = filtered.filter(e => {
+          const t = e.eventType.toLowerCase();
+          switch (currentCategory) {
+            case 'fire':    return t.includes('fire') || t.includes('wildfire');
+            case 'seismic': return t.includes('earthquake') || t.includes('explosion') || t.includes('quarry') || t.includes('blast');
+            case 'flood':   return t.includes('flood') || t.includes('tsunami');
+            case 'storm':   return t.includes('storm') || t.includes('hurricane') || t.includes('tornado') || t.includes('cyclone') || t.includes('typhoon') || t.includes('wind') || t.includes('thunder');
+            case 'volcano': return t.includes('volcan');
+            case 'other':   return !['fire','wildfire','earthquake','explosion','quarry','blast','flood','tsunami','storm','hurricane','tornado','cyclone','typhoon','wind','thunder','volcan'].some(k => t.includes(k));
+            default: return true;
+          }
+        });
+      }
+
+      // Search filter
+      if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        filtered = filtered.filter(e =>
+          e.title.toLowerCase().includes(q) ||
+          e.eventType.toLowerCase().includes(q) ||
+          e.id.toLowerCase().includes(q)
+        );
+      }
+
+      // Sort
+      filtered.sort((a, b) => {
+        switch (currentSort) {
+          case 'severity':
+            return (SEVERITY_ORDER[a.severity] ?? 4) - (SEVERITY_ORDER[b.severity] ?? 4);
+          case 'magnitude':
+            const magA = a.metadata?.magnitude ?? a.metadata?.magnitudeValue ?? 0;
+            const magB = b.metadata?.magnitude ?? b.metadata?.magnitudeValue ?? 0;
+            return magB - magA;
+          case 'title':
+            return a.title.localeCompare(b.title);
+          case 'time':
+          default:
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        }
+      });
+
+      return filtered;
+    }
+
+    // ─── Render Events ──────────────────────────────────────────────────────
+    function renderEvents() {
+      const filtered = getFilteredEvents();
+
+      if (filtered.length === 0) {
+        eventsContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">No events found</div>
+            <div class="empty-text">Try adjusting your filters or search query</div>
+          </div>
+        `;
+        return;
+      }
+
+      if (currentView === 'table') {
+        renderTableView(filtered);
+      } else {
+        renderGridView(filtered);
+      }
+    }
+
+    // ─── Grid View ──────────────────────────────────────────────────────────
+    function renderGridView(events) {
+      const html = `
+        <div class="events-grid">
+          ${events.map((event, i) => renderEventCard(event, i)).join('')}
+        </div>
+      `;
+      eventsContainer.innerHTML = html;
+    }
+
+    function renderEventCard(event, index) {
+      const timeAgo = getTimeAgo(event.timestamp);
+      const coords = `${event.coordinates.latitude.toFixed(3)}°, ${event.coordinates.longitude.toFixed(3)}°`;
+      const sourceClass = event.source === 'usgs' ? 'usgs' : event.source === 'noaa-nws' ? 'noaa-nws' : event.source === 'nasa-firms' ? 'nasa-firms' : 'nasa-eonet';
+      const earthUrl = getGoogleEarthUrl(event.coordinates.latitude, event.coordinates.longitude);
+      const isCriticalOrMajor = event.severity === 'critical' || event.severity === 'major';
+      const newsUrl = getGoogleNewsUrl(event);
+      const sourceLabel = event.source === 'usgs' ? '🔬 USGS' : event.source === 'noaa-nws' ? '🌩️ NOAA' : event.source === 'nasa-firms' ? '🔥 FIRMS' : '🛰️ NASA';
+
+      // Extract metadata details
+      let detailsHtml = '';
+      if (event.source === 'usgs' && event.metadata) {
+        const mag = event.metadata.magnitude != null ? event.metadata.magnitude : '—';
+        const depth = event.metadata.depth != null ? `${event.metadata.depth.toFixed(1)} km` : '—';
+        const magType = event.metadata.magType || '—';
+        const tsunami = event.metadata.tsunami ? '⚠️ Yes' : 'No';
+        detailsHtml = `
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-label">Magnitude</span>
+              <span class="detail-value">${mag} ${magType}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Depth</span>
+              <span class="detail-value">${depth}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Tsunami</span>
+              <span class="detail-value">${tsunami}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Significance</span>
+              <span class="detail-value">${event.metadata.sig || '—'}</span>
+            </div>
+          </div>
+        `;
+      } else if (event.source === 'nasa-eonet' && event.metadata) {
+        const magVal = event.metadata.magnitudeValue != null ? event.metadata.magnitudeValue : '—';
+        const magUnit = event.metadata.magnitudeUnit || '';
+        const category = event.metadata.categoryTitle || event.eventType;
+        const status = event.metadata.closed ? 'Closed' : '🟢 Open';
+        detailsHtml = `
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-label">Category</span>
+              <span class="detail-value">${category}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Magnitude</span>
+              <span class="detail-value">${magVal} ${magUnit}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status</span>
+              <span class="detail-value">${status}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Sources</span>
+              <span class="detail-value">${event.metadata.sources?.length || 0}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // News + action links for critical/major events
+      let actionsHtml = '';
+      if (isCriticalOrMajor) {
+        actionsHtml = `
+          <div class="card-actions">
+            <a href="${newsUrl}" target="_blank" rel="noopener" class="action-link news-link" data-stop-propagation>
+              📰 Latest News Coverage
+            </a>
+            ${event.metadata?.url ? `<a href="${event.metadata.url}" target="_blank" rel="noopener" class="action-link source-link" data-stop-propagation>
+              🔗 Official Source
+            </a>` : ''}
+          </div>
+        `;
+      }
+      // NOAA details
+      if (event.source === 'noaa-nws' && event.metadata) {
+        const area = event.metadata.area || '—';
+        const urgency = event.metadata.urgency || '—';
+        const certainty = event.metadata.certainty || '—';
+        const sender = event.metadata.senderName || '—';
+        detailsHtml = `
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-label">Area</span>
+              <span class="detail-value" title="${escapeHtml(area)}">${escapeHtml(area.length > 60 ? area.substring(0, 60) + '…' : area)}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Urgency</span>
+              <span class="detail-value">${urgency}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Certainty</span>
+              <span class="detail-value">${certainty}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Sender</span>
+              <span class="detail-value">${escapeHtml(sender.length > 30 ? sender.substring(0, 30) + '…' : sender)}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <article class="event-card severity-${event.severity}" style="animation-delay: ${Math.min(index * 40, 600)}ms" data-event-id="${escapeHtml(event.id)}">
+          <div class="severity-bar"></div>
+          <div class="card-header">
+            <div class="card-title">${escapeHtml(event.title)}</div>
+            <span class="severity-badge ${event.severity}">${event.severity}</span>
+          </div>
+          <div class="card-meta">
+            <span class="source-tag ${sourceClass}">${sourceLabel}</span>
+            <a href="${earthUrl}" target="_blank" rel="noopener" class="meta-item coord-link" title="View on Google Earth" onclick="event.stopPropagation()">
+              <span class="meta-icon">📍</span>
+              <span class="meta-value">${coords}</span>
+              <span class="coord-arrow">↗</span>
+            </a>
+            <div class="meta-item">
+              <span class="meta-icon">🕐</span>
+              <span class="meta-value">${timeAgo}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-icon">🏷️</span>
+              <span class="meta-value">${event.eventType}</span>
+            </div>
+          </div>
+          ${detailsHtml}
+          ${actionsHtml}
+        </article>
+      `;
+    }
+
+    // ─── Table View ─────────────────────────────────────────────────────────
+    function renderTableView(events) {
+      const html = `
+        <div class="events-table-container">
+          <table class="events-table">
+            <thead>
+              <tr>
+                <th>Severity</th>
+                <th>Source</th>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Coordinates</th>
+                <th>Time</th>
+                <th>Links</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${events.map(event => {
+                const sourceClass = event.source === 'usgs' ? 'usgs' : event.source === 'noaa-nws' ? 'noaa-nws' : event.source === 'nasa-firms' ? 'nasa-firms' : 'nasa-eonet';
+                const sourceLabel = event.source === 'usgs' ? 'USGS' : event.source === 'noaa-nws' ? 'NOAA' : event.source === 'nasa-firms' ? 'FIRMS' : 'NASA';
+                const coords = `${event.coordinates.latitude.toFixed(2)}°, ${event.coordinates.longitude.toFixed(2)}°`;
+                const earthUrl = getGoogleEarthUrl(event.coordinates.latitude, event.coordinates.longitude);
+                const isCriticalOrMajor = event.severity === 'critical' || event.severity === 'major';
+                const newsUrl = getGoogleNewsUrl(event);
+                return `
+                  <tr data-event-id="${escapeHtml(event.id)}" style="cursor:pointer">
+                    <td><span class="severity-badge ${event.severity}">${event.severity}</span></td>
+                    <td><span class="source-tag ${sourceClass}">${sourceLabel}</span></td>
+                    <td class="td-title" title="${escapeHtml(event.title)}">${escapeHtml(event.title)}</td>
+                    <td class="td-mono">${event.eventType}</td>
+                    <td class="td-mono"><a href="${earthUrl}" target="_blank" rel="noopener" class="coord-link-inline" title="View on Google Earth">${coords} 🌐</a></td>
+                    <td class="td-mono">${getTimeAgo(event.timestamp)}</td>
+                    <td class="td-links">
+                      ${isCriticalOrMajor ? `<a href="${newsUrl}" target="_blank" rel="noopener" class="table-news-link" title="Search news">📰</a>` : ''}
+                      ${event.metadata?.url ? `<a href="${event.metadata.url}" target="_blank" rel="noopener" class="table-source-link" title="Official source">🔗</a>` : ''}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      eventsContainer.innerHTML = html;
+    }
+
+    // ─── Event Detail Modal ─────────────────────────────────────────────────
+    function openEventModal(eventId) {
+      const event = allEvents.find(e => e.id === eventId);
+      if (!event) return;
+
+      const lat = event.coordinates.latitude;
+      const lng = event.coordinates.longitude;
+      const earthUrl = getGoogleEarthUrl(lat, lng);
+      const newsUrl = getGoogleNewsUrl(event);
+      const isCriticalOrMajor = event.severity === 'critical' || event.severity === 'major';
+
+      // Build all metadata rows
+      let metaRows = '';
+      if (event.metadata) {
+        const entries = Object.entries(event.metadata).filter(([k, v]) => v != null && k !== 'sources');
+        metaRows = entries.map(([key, val]) => `
+          <tr>
+            <td class="modal-meta-key">${escapeHtml(key)}</td>
+            <td class="modal-meta-val">${typeof val === 'string' && val.startsWith('http') ? `<a href="${val}" target="_blank" rel="noopener">${escapeHtml(val)}</a>` : escapeHtml(String(val))}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Satellite data links
+      const satLinks = getSatelliteLinks(lat, lng, event.timestamp);
+
+      // Recommended layers based on event type
+      const layerRecs = getLayerRecommendations(event.eventType);
+
+      $('#modal-body').innerHTML = `
+        <!-- Modal Tabs -->
+        <div class="modal-tabs" id="modal-tabs">
+          <button class="modal-tab active" data-tab="overview">Overview</button>
+          <button class="modal-tab" data-tab="geoscience">GeoScience</button>
+        </div>
+
+        <!-- Tab: Overview -->
+        <div class="modal-tab-content active" id="tab-overview">
+          <div class="modal-header-row">
+            <span class="severity-badge ${event.severity}" style="font-size:0.8rem">${event.severity.toUpperCase()}</span>
+            <span class="source-tag ${event.source === 'usgs' ? 'usgs' : event.source === 'noaa-nws' ? 'noaa-nws' : event.source === 'nasa-firms' ? 'nasa-firms' : 'nasa-eonet'}">${event.source === 'usgs' ? 'USGS' : event.source === 'noaa-nws' ? 'NOAA' : event.source === 'nasa-firms' ? 'FIRMS' : 'NASA'}</span>
+          </div>
+          <h2 class="modal-title">${escapeHtml(event.title)}</h2>
+          <div class="modal-time">${new Date(event.timestamp).toLocaleString()} (${getTimeAgo(event.timestamp)})</div>
+          <div class="modal-coords">
+            ${lat.toFixed(4)}°, ${lng.toFixed(4)}°
+            <a href="${earthUrl}" target="_blank" rel="noopener" class="modal-earth-link">View on Google Earth ↗</a>
+          </div>
+          ${metaRows ? `
+            <table class="modal-meta-table">
+              <thead><tr><th>Property</th><th>Value</th></tr></thead>
+              <tbody>${metaRows}</tbody>
+            </table>
+          ` : ''}
+          <div class="modal-actions">
+            <a href="${earthUrl}" target="_blank" rel="noopener" class="action-link source-link">Google Earth</a>
+            ${isCriticalOrMajor ? `<a href="${newsUrl}" target="_blank" rel="noopener" class="action-link news-link">Search News</a>` : ''}
+            ${event.metadata?.url ? `<a href="${event.metadata.url}" target="_blank" rel="noopener" class="action-link source-link">Official Source</a>` : ''}
+            <button class="action-link source-link" id="btn-copy-json" data-event-id="${escapeHtml(event.id)}">Copy JSON</button>
+          </div>
+        </div>
+
+        <!-- Tab: GeoScience -->
+        <div class="modal-tab-content" id="tab-geoscience">
+          <div class="geo-section">
+            <h3 class="geo-heading">Satellite Data Access</h3>
+            <p class="geo-desc">Direct links to satellite imagery for coordinates <strong>${lat.toFixed(4)}°, ${lng.toFixed(4)}°</strong></p>
+            <div class="geo-links">
+              ${satLinks.map(l => `
+                <a href="${l.url}" target="_blank" rel="noopener" class="geo-link-card">
+                  <div class="geo-link-name">${l.name}</div>
+                  <div class="geo-link-desc">${l.desc}</div>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="geo-section">
+            <h3 class="geo-heading">Recommended Layers & Indices</h3>
+            <p class="geo-desc">Based on event type: <strong>${event.eventType}</strong></p>
+            <div class="geo-layers">
+              ${layerRecs.map(r => `
+                <div class="geo-layer-card">
+                  <div class="geo-layer-name">${r.name}</div>
+                  <div class="geo-layer-formula">${r.formula}</div>
+                  <div class="geo-layer-desc">${r.desc}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="geo-section">
+            <h3 class="geo-heading">AI GeoScience Assistant</h3>
+            <p class="geo-desc">Ask about satellite bands, change detection methods, or data processing for this event.</p>
+            <div class="geo-chat" id="geo-chat">
+              <div class="geo-chat-messages" id="geo-chat-messages"></div>
+              <div class="geo-chat-input-row">
+                <input type="text" id="geo-chat-input" placeholder="e.g., How do I detect burn scars with Sentinel-2?" autocomplete="off" />
+                <button id="geo-chat-send" class="geo-chat-btn">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Wire tab switching
+      $$('#modal-tabs .modal-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          $$('#modal-tabs .modal-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          $$('.modal-tab-content').forEach(c => c.classList.remove('active'));
+          $(`#tab-${tab.dataset.tab}`).classList.add('active');
+        });
+      });
+
+      // Wire AI chat
+      const chatInput = $('#geo-chat-input');
+      const chatSend = $('#geo-chat-send');
+      const chatMessages = $('#geo-chat-messages');
+
+      const eventCtx = `Event: ${event.title}\nType: ${event.eventType}\nSeverity: ${event.severity}\nCoordinates: ${lat}, ${lng}\nTimestamp: ${event.timestamp}\nSource: ${event.source}${event.metadata ? '\nMetadata: ' + JSON.stringify(event.metadata) : ''}`;
+
+      async function sendChatMessage() {
+        const msg = chatInput.value.trim();
+        if (!msg) return;
+
+        chatMessages.innerHTML += `<div class="geo-msg user"><div class="geo-msg-label">You</div><div class="geo-msg-text">${escapeHtml(msg)}</div></div>`;
+        chatInput.value = '';
+        chatSend.disabled = true;
+        chatSend.textContent = '...';
+
+        chatMessages.innerHTML += `<div class="geo-msg ai" id="ai-typing"><div class="geo-msg-label">GeoScience AI</div><div class="geo-msg-text" style="opacity:0.5">Thinking...</div></div>`;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+          const resp = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg, eventContext: eventCtx }),
+          });
+          const data = await resp.json();
+          const typing = document.getElementById('ai-typing');
+          if (typing) typing.remove();
+
+          if (data.success) {
+            chatMessages.innerHTML += `<div class="geo-msg ai"><div class="geo-msg-label">GeoScience AI</div><div class="geo-msg-text">${formatAIResponse(data.answer)}</div></div>`;
+          } else {
+            chatMessages.innerHTML += `<div class="geo-msg ai"><div class="geo-msg-label">Error</div><div class="geo-msg-text" style="color:var(--color-critical)">${escapeHtml(data.error)}</div></div>`;
+          }
+        } catch (err) {
+          const typing = document.getElementById('ai-typing');
+          if (typing) typing.remove();
+          chatMessages.innerHTML += `<div class="geo-msg ai"><div class="geo-msg-label">Error</div><div class="geo-msg-text" style="color:var(--color-critical)">Failed to reach AI service</div></div>`;
+        }
+
+        chatSend.disabled = false;
+        chatSend.textContent = 'Send';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      chatSend.addEventListener('click', sendChatMessage);
+      chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+
+      $('#modal-overlay').classList.add('active');
+    }
+
+    function formatAIResponse(text) {
+      // Basic markdown-like formatting
+      return escapeHtml(text)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+    }
+
+    function getSatelliteLinks(lat, lng, timestamp) {
+      const date = new Date(timestamp);
+      const dateStr = date.toISOString().slice(0, 10);
+      const bbox = `${(lng - 0.5).toFixed(2)},${(lat - 0.5).toFixed(2)},${(lng + 0.5).toFixed(2)},${(lat + 0.5).toFixed(2)}`;
+
+      return [
+        {
+          name: 'USGS EarthExplorer',
+          desc: 'Landsat 8/9, Sentinel-2, ASTER',
+          url: `https://earthexplorer.usgs.gov/`,
+        },
+        {
+          name: 'Copernicus Browser',
+          desc: 'Sentinel-1/2/3, free EU data hub',
+          url: `https://browser.dataspace.copernicus.eu/?zoom=12&lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}&themeId=DEFAULT-THEME&visualizationUrl=https%3A%2F%2Fsh.dataspace.copernicus.eu%2Fogc%2Fwms%2Fa91f72b5-f299-4c1e-a7e3-5467ec3e15c0&datasetId=S2_L2A_CDAS&demSource3D=%22MAPZEN%22&cloudCoverage=30&dateMode=SINGLE&fromTime=${dateStr}T00%3A00%3A00.000Z&toTime=${dateStr}T23%3A59%3A59.999Z`,
+        },
+        {
+          name: 'NASA Worldview',
+          desc: 'MODIS, VIIRS, multi-day composite',
+          url: `https://worldview.earthdata.nasa.gov/?v=${bbox}&t=${dateStr}`,
+        },
+        {
+          name: 'Google Earth Engine',
+          desc: 'Code editor, analysis-ready data',
+          url: `https://code.earthengine.google.com/`,
+        },
+        {
+          name: 'Sentinel Hub EO Browser',
+          desc: 'Interactive band viewer, custom scripts',
+          url: `https://apps.sentinel-hub.com/eo-browser/?zoom=12&lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}&themeId=DEFAULT-THEME`,
+        },
+      ];
+    }
+
+    function getLayerRecommendations(eventType) {
+      const t = eventType.toLowerCase();
+      if (t.includes('fire') || t.includes('wildfire')) {
+        return [
+          { name: 'NBR (Normalized Burn Ratio)', formula: '(NIR − SWIR) / (NIR + SWIR)', desc: 'Landsat: (B5−B7)/(B5+B7) | Sentinel-2: (B8A−B12)/(B8A+B12). Pre/post difference = dNBR for burn severity.' },
+          { name: 'SWIR False Color', formula: 'SWIR2, NIR, Red', desc: 'Landsat: B7-B5-B4 | Sentinel-2: B12-B8A-B4. Active fire appears bright red/orange.' },
+          { name: 'FIRMS Active Fire', formula: 'VIIRS I-Band 375m', desc: 'Real-time thermal anomaly detection. Already integrated in this dashboard.' },
+          { name: 'NDVI Change', formula: '(NIR − Red) / (NIR + Red)', desc: 'Compare pre/post fire NDVI to quantify vegetation loss.' },
+        ];
+      } else if (t.includes('earthquake') || t.includes('explosion') || t.includes('blast') || t.includes('quarry')) {
+        return [
+          { name: 'InSAR (Interferometric SAR)', formula: 'Sentinel-1 SLC pairs', desc: 'Phase difference between pre/post earthquake acquisitions shows ground deformation.' },
+          { name: 'Coherence Change', formula: 'Pre/post coherence ratio', desc: 'Areas of building collapse show coherence loss in Sentinel-1 pairs.' },
+          { name: 'DEM Differencing', formula: 'Pre-DEM − Post-DEM', desc: 'Lidar or stereo DEM comparison for landslide and surface change.' },
+          { name: 'Optical Change', formula: 'Sentinel-2 true color', desc: 'Visual comparison of pre/post imagery for surface ruptures and landslides.' },
+        ];
+      } else if (t.includes('flood') || t.includes('tsunami')) {
+        return [
+          { name: 'NDWI (Normalized Water Index)', formula: '(Green − NIR) / (Green + NIR)', desc: 'Sentinel-2: (B3−B8)/(B3+B8). Highlights water surface extent.' },
+          { name: 'MNDWI (Modified NDWI)', formula: '(Green − SWIR) / (Green + SWIR)', desc: 'Sentinel-2: (B3−B11)/(B3+B11). Better urban flood mapping.' },
+          { name: 'SAR Backscatter', formula: 'Sentinel-1 GRD VV/VH', desc: 'Flooded areas show low backscatter. Works through clouds.' },
+          { name: 'DEM + Flow Accumulation', formula: 'SRTM / Copernicus DEM', desc: 'Identify flood-prone terrain and model water flow paths.' },
+        ];
+      } else if (t.includes('volcan')) {
+        return [
+          { name: 'Thermal Infrared', formula: 'Landsat B10/B11', desc: 'Detect lava flows and thermal anomalies at the summit.' },
+          { name: 'SO₂ Column', formula: 'Sentinel-5P TROPOMI', desc: 'Map sulfur dioxide plumes from volcanic eruptions.' },
+          { name: 'SAR Amplitude', formula: 'Sentinel-1 ascending/descending', desc: 'Track lava flow extent and surface deformation.' },
+          { name: 'Ash RGB', formula: 'TIR channels', desc: 'EUMETSAT ash composite for volcanic cloud tracking.' },
+        ];
+      } else if (t.includes('storm') || t.includes('hurricane') || t.includes('cyclone')) {
+        return [
+          { name: 'Optical Damage Assessment', formula: 'Sentinel-2 true/false color', desc: 'Compare pre/post storm imagery for structural damage.' },
+          { name: 'SAR Damage Proxy Map', formula: 'Sentinel-1 coherence', desc: 'Building damage causes coherence loss between pre/post SAR pairs.' },
+          { name: 'NDVI Change', formula: '(NIR − Red) / (NIR + Red)', desc: 'Vegetation stripping from high winds visible as NDVI drop.' },
+          { name: 'Precipitation', formula: 'GPM / IMERG', desc: 'NASA rain rate data for storm intensity mapping.' },
+        ];
+      }
+      return [
+        { name: 'True Color', formula: 'Red, Green, Blue', desc: 'Sentinel-2: B4-B3-B2 | Landsat: B4-B3-B2. Visual assessment.' },
+        { name: 'False Color Infrared', formula: 'NIR, Red, Green', desc: 'Sentinel-2: B8-B4-B3. Healthy vegetation appears bright red.' },
+        { name: 'NDVI', formula: '(NIR − Red) / (NIR + Red)', desc: 'Vegetation health index. Values: -1 (water) to +1 (dense vegetation).' },
+      ];
+    }
+
+    function closeModal() {
+      $('#modal-overlay').classList.remove('active');
+    }
+
+    function copyEventJson(eventId) {
+      const event = allEvents.find(e => e.id === eventId);
+      if (event) {
+        navigator.clipboard.writeText(JSON.stringify(event, null, 2));
+        const btn = document.querySelector('.modal-actions button');
+        if (btn) { btn.textContent = '✅ Copied!'; setTimeout(() => btn.textContent = 'Copy JSON', 2000); }
+      }
+    }
+
+    // ─── Export ──────────────────────────────────────────────────────────────
+    function exportEvents(format = 'json') {
+      const filtered = getFilteredEvents();
+      let blob, filename;
+
+      if (format === 'csv') {
+        const headers = ['id','source','title','severity','latitude','longitude','timestamp','eventType'];
+        const rows = filtered.map(e =>
+          headers.map(h => h === 'latitude' ? e.coordinates.latitude : h === 'longitude' ? e.coordinates.longitude : JSON.stringify(e[h] ?? '')).join(',')
+        );
+        blob = new Blob([headers.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' });
+        filename = `terramind_events_${new Date().toISOString().slice(0,10)}.csv`;
+      } else {
+        blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' });
+        filename = `terramind_events_${new Date().toISOString().slice(0,10)}.json`;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ─── Utilities ──────────────────────────────────────────────────────────
+
+    function getGoogleEarthUrl(lat, lng) {
+      return `https://earth.google.com/web/@${lat},${lng},0a,50000d,35y,0h,0t,0r`;
+    }
+
+    // ─── Coordinate → Country Lookup (offline, no API needed) ─────────────
+    // Simple bounding-box lookup for approximate country from lat/lng.
+    // Covers the top ~50 fire-prone and disaster-prone countries.
+    const COUNTRY_BOXES = [
+      { n: 'USA', bb: [-125, 24, -66, 50] },
+      { n: 'Canada', bb: [-141, 41, -52, 84] },
+      { n: 'Mexico', bb: [-118, 14, -86, 33] },
+      { n: 'Brazil', bb: [-74, -34, -35, 5] },
+      { n: 'Argentina', bb: [-74, -55, -53, -21] },
+      { n: 'Colombia', bb: [-79, -4, -67, 13] },
+      { n: 'Venezuela', bb: [-73, 1, -60, 12] },
+      { n: 'Peru', bb: [-81, -18, -68, 0] },
+      { n: 'Chile', bb: [-76, -56, -66, -17] },
+      { n: 'Bolivia', bb: [-70, -23, -57, -9] },
+      { n: 'Guatemala', bb: [-92, 13, -88, 18] },
+      { n: 'Honduras', bb: [-90, 13, -83, 16] },
+      { n: 'Cuba', bb: [-85, 19, -74, 24] },
+      { n: 'UK', bb: [-8, 50, 2, 59] },
+      { n: 'France', bb: [-5, 42, 8, 51] },
+      { n: 'Spain', bb: [-9, 36, 4, 44] },
+      { n: 'Portugal', bb: [-10, 37, -6, 42] },
+      { n: 'Italy', bb: [6, 36, 18, 47] },
+      { n: 'Germany', bb: [6, 47, 15, 55] },
+      { n: 'Greece', bb: [19, 35, 30, 42] },
+      { n: 'Turkey', bb: [26, 36, 45, 42] },
+      { n: 'Russia', bb: [27, 41, 180, 82] },
+      { n: 'Ukraine', bb: [22, 44, 40, 53] },
+      { n: 'Sweden', bb: [11, 55, 24, 69] },
+      { n: 'Norway', bb: [4, 58, 31, 71] },
+      { n: 'Finland', bb: [20, 60, 32, 70] },
+      { n: 'India', bb: [68, 6, 97, 36] },
+      { n: 'Pakistan', bb: [61, 24, 77, 37] },
+      { n: 'China', bb: [73, 18, 135, 54] },
+      { n: 'Japan', bb: [128, 30, 146, 46] },
+      { n: 'South Korea', bb: [125, 33, 130, 39] },
+      { n: 'Indonesia', bb: [95, -11, 141, 6] },
+      { n: 'Malaysia', bb: [100, 0, 119, 8] },
+      { n: 'Philippines', bb: [117, 5, 127, 21] },
+      { n: 'Thailand', bb: [97, 6, 106, 21] },
+      { n: 'Vietnam', bb: [102, 8, 110, 24] },
+      { n: 'Myanmar', bb: [92, 10, 101, 28] },
+      { n: 'Australia', bb: [113, -44, 154, -10] },
+      { n: 'New Zealand', bb: [166, -47, 178, -34] },
+      { n: 'Nigeria', bb: [3, 4, 15, 14] },
+      { n: 'South Africa', bb: [16, -35, 33, -22] },
+      { n: 'Kenya', bb: [34, -5, 42, 5] },
+      { n: 'Ethiopia', bb: [33, 3, 48, 15] },
+      { n: 'DRC Congo', bb: [12, -13, 31, 5] },
+      { n: 'Tanzania', bb: [29, -11, 41, 0] },
+      { n: 'Sudan', bb: [22, 9, 38, 22] },
+      { n: 'Algeria', bb: [-9, 19, 12, 37] },
+      { n: 'Morocco', bb: [-13, 27, -1, 36] },
+      { n: 'Egypt', bb: [25, 22, 35, 32] },
+      { n: 'Iran', bb: [44, 25, 63, 40] },
+      { n: 'Iraq', bb: [39, 29, 49, 37] },
+      { n: 'Saudi Arabia', bb: [35, 16, 55, 32] },
+      { n: 'Kazakhstan', bb: [47, 40, 87, 56] },
+      { n: 'Mongolia', bb: [88, 42, 120, 52] },
+    ];
+
+    function getCountryFromCoords(lat, lng) {
+      for (const c of COUNTRY_BOXES) {
+        const [w, s, e, n] = c.bb;
+        if (lng >= w && lng <= e && lat >= s && lat <= n) return c.n;
+      }
+      return null;
+    }
+
+    function getNewsSearchUrl(event) {
+      let query = '';
+
+      if (event.source === 'nasa-firms') {
+        // Use country lookup + "wildfire" for meaningful results
+        const country = getCountryFromCoords(
+          event.coordinates.latitude,
+          event.coordinates.longitude
+        );
+        const region = event.metadata?.region || '';
+        if (country) {
+          query = `wildfire ${country} ${new Date(event.timestamp).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+        } else if (region) {
+          query = `wildfire ${region}`;
+        } else {
+          query = `wildfire ${event.coordinates.latitude.toFixed(0)} ${event.coordinates.longitude.toFixed(0)}`;
+        }
+      } else if (event.source === 'noaa-nws') {
+        const area = event.metadata?.area || '';
+        const shortArea = area.split(';')[0].trim();
+        query = event.eventType + ' ' + shortArea;
+      } else if (event.source === 'usgs') {
+        query = event.title.replace(/^M\s+[\d.]+\s*-\s*/, '') + ' earthquake';
+      } else {
+        // NASA EONET
+        query = event.title;
+      }
+
+      return `https://duckduckgo.com/?q=${encodeURIComponent(query)}&iar=news&ia=news`;
+    }
+
+    // Legacy alias
+    function getGoogleNewsUrl(event) {
+      return getNewsSearchUrl(event);
+    }
+
+    function getTimeAgo(timestamp) {
+      const now = Date.now();
+      const then = new Date(timestamp).getTime();
+      const diffMs = now - then;
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffHr = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHr / 24);
+
+      if (diffMin < 1) return 'just now';
+      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffHr < 24) return `${diffHr}h ${diffMin % 60}m ago`;
+      if (diffDay < 7) return `${diffDay}d ago`;
+      return new Date(timestamp).toLocaleDateString();
+    }
+
+    function escapeHtml(text) {
+      const el = document.createElement('span');
+      el.textContent = text;
+      return el.innerHTML;
+    }
+
+    // ─── Event Listeners ────────────────────────────────────────────────────
+
+    // Filter chips
+    $('#filter-group').addEventListener('click', (e) => {
+      const chip = e.target.closest('.filter-chip');
+      if (!chip) return;
+
+      $$('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter = chip.dataset.filter;
+      localStorage.setItem('tm-filter', currentFilter);
+      renderEvents();
+      updateMap();
+      updateCharts();
+    });
+
+    // View toggle
+    $('#view-toggle').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+
+      $$('#view-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentView = btn.dataset.view;
+      localStorage.setItem('tm-view', currentView);
+      renderEvents();
+    });
+
+    // Sort
+    sortSelect.addEventListener('change', () => {
+      currentSort = sortSelect.value;
+      localStorage.setItem('tm-sort', currentSort);
+      renderEvents();
+      updateMap();
+    });
+
+    // Category filter
+    categorySelect.addEventListener('change', () => {
+      currentCategory = categorySelect.value;
+      localStorage.setItem('tm-category', currentCategory);
+      renderEvents();
+      updateMap();
+      updateCategoryCounts();
+    });
+
+    // Search
+    searchInput.addEventListener('input', (e) => {
+      currentSearch = e.target.value;
+      renderEvents();
+      updateMap();
+    });
+
+    // Refresh (bypass cache)
+    btnRefresh.addEventListener('click', () => fetchEvents(true));
+
+    // Export
+    $('#btn-export').addEventListener('click', () => {
+      exportEvents('json');
+    });
+
+    // Modal close
+    $('#modal-close').addEventListener('click', closeModal);
+    $('#modal-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+
+    // Delegated click: event cards & table rows → open modal
+    eventsContainer.addEventListener('click', (e) => {
+      // Stop propagation for links/buttons inside cards
+      if (e.target.closest('[data-stop-propagation]')) {
+        e.stopPropagation();
+        return;
+      }
+      // Don't open modal if clicking a link
+      if (e.target.closest('a')) return;
+
+      // Find the card or table row
+      const card = e.target.closest('[data-event-id]');
+      if (card) {
+        openEventModal(card.dataset.eventId);
+      }
+    });
+
+    // Delegated click: copy JSON button in modal
+    $('#modal-overlay').addEventListener('click', (e) => {
+      const copyBtn = e.target.closest('#btn-copy-json');
+      if (copyBtn) {
+        copyEventJson(copyBtn.dataset.eventId);
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey && e.key === 'k') || (e.key === '/' && document.activeElement !== searchInput)) {
+        e.preventDefault();
+        searchInput.focus();
+      }
+      if (e.key === 'Escape') {
+        if ($('#modal-overlay').classList.contains('active')) {
+          closeModal();
+        } else {
+          searchInput.blur();
+          searchInput.value = '';
+          currentSearch = '';
+          renderEvents();
+        }
+      }
+    });
+
+    // ─── Auto-refresh ───────────────────────────────────────────────────────
+    const AUTO_REFRESH_MS = 120_000;
+    setInterval(fetchEvents, AUTO_REFRESH_MS);
+
+    // ─── Time Range ─────────────────────────────────────────────────────────
+    // Restore persisted time range
+    $$('#time-range-group .time-range-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.range === currentTimeRange);
+    });
+
+    $('#time-range-group').addEventListener('click', (e) => {
+      const btn = e.target.closest('.time-range-btn');
+      if (!btn) return;
+      $$('#time-range-group .time-range-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTimeRange = btn.dataset.range;
+      localStorage.setItem('tm-timerange', currentTimeRange);
+      fetchEvents(true);
+    });
+
+    // ─── Map Toggle ─────────────────────────────────────────────────────────
+    $('#map-toggle-btn').addEventListener('click', () => {
+      const container = $('#map-container');
+      const btn = $('#map-toggle-btn');
+      container.classList.toggle('collapsed');
+      btn.textContent = container.classList.contains('collapsed') ? 'Show Map' : 'Hide Map';
+      if (!container.classList.contains('collapsed') && leafletMap) {
+        setTimeout(() => leafletMap.invalidateSize(), 400);
+      }
+    });
+
+    // ─── Analytics Toggle ───────────────────────────────────────────────────
+    $('#analytics-toggle-btn').addEventListener('click', () => {
+      const section = $('#analytics-section');
+      const btn = $('#analytics-toggle-btn');
+      section.classList.toggle('collapsed');
+      btn.textContent = section.classList.contains('collapsed') ? 'Show Charts' : 'Hide Charts';
+    });
+
+    // ─── Help Section Toggle ────────────────────────────────────────────────
+    $('#help-toggle-btn').addEventListener('click', () => {
+      const content = $('#help-content');
+      const btn = $('#help-toggle-btn');
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        btn.textContent = 'Hide';
+      } else {
+        content.style.display = 'none';
+        btn.textContent = 'Show';
+      }
+    });
+
+    // ─── Help AI Chat ───────────────────────────────────────────────────────
+    (function wireHelpChat() {
+      const chatInput = $('#help-chat-input');
+      const chatSend = $('#help-chat-send');
+      const chatMessages = $('#help-chat-messages');
+
+      async function sendHelpChat() {
+        const msg = chatInput.value.trim();
+        if (!msg) return;
+
+        chatMessages.innerHTML += `<div class="geo-msg user"><div class="geo-msg-label">You</div><div class="geo-msg-text">${escapeHtml(msg)}</div></div>`;
+        chatInput.value = '';
+        chatSend.disabled = true;
+        chatSend.textContent = '...';
+
+        chatMessages.innerHTML += `<div class="geo-msg ai" id="help-ai-typing"><div class="geo-msg-label">GeoScience AI</div><div class="geo-msg-text" style="opacity:0.5">Thinking...</div></div>`;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+          const resp = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg, eventContext: '' }),
+          });
+          const data = await resp.json();
+          const typing = document.getElementById('help-ai-typing');
+          if (typing) typing.remove();
+
+          if (data.success) {
+            chatMessages.innerHTML += `<div class="geo-msg ai"><div class="geo-msg-label">GeoScience AI <span style="font-weight:400;opacity:0.6;text-transform:none">(${data.model})</span></div><div class="geo-msg-text">${formatAIResponse(data.answer)}</div></div>`;
+          } else {
+            chatMessages.innerHTML += `<div class="geo-msg ai"><div class="geo-msg-label">Error</div><div class="geo-msg-text" style="color:var(--color-critical)">${escapeHtml(data.error)}</div></div>`;
+          }
+        } catch (err) {
+          const typing = document.getElementById('help-ai-typing');
+          if (typing) typing.remove();
+          chatMessages.innerHTML += `<div class="geo-msg ai"><div class="geo-msg-label">Error</div><div class="geo-msg-text" style="color:var(--color-critical)">Failed to reach AI service</div></div>`;
+        }
+
+        chatSend.disabled = false;
+        chatSend.textContent = 'Send';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      chatSend.addEventListener('click', sendHelpChat);
+      chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendHelpChat(); });
+    })();
+
+    // ─── Leaflet Map ────────────────────────────────────────────────────────
+
+    const SEVERITY_COLORS = {
+      critical: '#ef4444',
+      major: '#f59e0b',
+      moderate: '#3b82f6',
+      minor: '#22c55e',
+      unknown: '#6b7280',
+    };
+
+    let currentTileLayer = null;
+
+    function getMapTileUrl() {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const style = theme === 'light' ? 'light_all' : 'dark_all';
+      return `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`;
+    }
+
+    function initMap() {
+      if (leafletMap) return;
+      leafletMap = L.map('terramind-map', {
+        center: [20, 0],
+        zoom: 2,
+        zoomControl: true,
+        attributionControl: true,
+      });
+
+      currentTileLayer = L.tileLayer(getMapTileUrl(), {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+      }).addTo(leafletMap);
+    }
+
+    function updateMap() {
+      if (!leafletMap) return;
+
+      // Clear existing markers
+      mapMarkers.forEach(m => leafletMap.removeLayer(m));
+      mapMarkers = [];
+
+      const filtered = getFilteredEvents();
+
+      filtered.forEach(event => {
+        const lat = event.coordinates.latitude;
+        const lng = event.coordinates.longitude;
+        if (lat === 0 && lng === 0) return; // skip events with no real coordinates
+
+        const color = SEVERITY_COLORS[event.severity] || SEVERITY_COLORS.unknown;
+        const mag = event.metadata?.magnitude ?? event.metadata?.magnitudeValue ?? null;
+        const radius = mag ? Math.max(4, Math.min(mag * 3, 25)) : 6;
+
+        const marker = L.circleMarker([lat, lng], {
+          radius: radius,
+          fillColor: color,
+          color: color,
+          weight: 1,
+          opacity: 0.9,
+          fillOpacity: 0.5,
+        }).addTo(leafletMap);
+
+        const earthUrl = getGoogleEarthUrl(lat, lng);
+        const timeAgo = getTimeAgo(event.timestamp);
+        const sourceLabel = event.source === 'usgs' ? 'USGS' : event.source === 'noaa-nws' ? 'NOAA' : event.source === 'nasa-firms' ? 'FIRMS' : 'NASA';
+
+        marker.bindPopup(`
+          <div class="map-popup-title">${escapeHtml(event.title)}</div>
+          <div class="map-popup-meta">
+            <span class="map-popup-badge ${event.severity}">${event.severity}</span>
+            <strong>${sourceLabel}</strong> · ${timeAgo}<br/>
+            ${mag != null ? `<strong>Mag:</strong> ${mag} · ` : ''}<strong>Type:</strong> ${event.eventType}<br/>
+            <strong>Coords:</strong> ${lat.toFixed(3)}°, ${lng.toFixed(3)}°
+          </div>
+          <a href="${earthUrl}" target="_blank" rel="noopener" class="map-popup-link">🌐 View on Google Earth ↗</a>
+        `, { maxWidth: 280 });
+
+        mapMarkers.push(marker);
+      });
+
+      // Fit bounds if we have markers
+      if (mapMarkers.length > 0) {
+        const group = L.featureGroup(mapMarkers);
+        leafletMap.fitBounds(group.getBounds().pad(0.1), { maxZoom: 6 });
+      }
+    }
+
+    // ─── Chart.js Analytics ──────────────────────────────────────────────────
+
+    function updateCharts() {
+      if (typeof Chart === 'undefined') return;
+
+      const filtered = getFilteredEvents();
+
+      // Severity distribution
+      const sevCounts = { critical: 0, major: 0, moderate: 0, minor: 0, unknown: 0 };
+      filtered.forEach(e => { sevCounts[e.severity] = (sevCounts[e.severity] || 0) + 1; });
+
+      const sevData = {
+        labels: ['Critical', 'Major', 'Moderate', 'Minor', 'Unknown'],
+        datasets: [{
+          data: [sevCounts.critical, sevCounts.major, sevCounts.moderate, sevCounts.minor, sevCounts.unknown],
+          backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#22c55e', '#6b7280'],
+          borderColor: 'rgba(17, 24, 39, 0.8)',
+          borderWidth: 2,
+        }],
+      };
+
+      if (severityChart) {
+        severityChart.data = sevData;
+        severityChart.update();
+      } else {
+        const ctx = document.getElementById('severity-chart');
+        if (ctx) {
+          severityChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: sevData,
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, padding: 12 },
+                },
+              },
+              cutout: '60%',
+            },
+          });
+        }
+      }
+
+      // Source distribution
+      const srcCounts = { usgs: 0, 'nasa-eonet': 0, 'noaa-nws': 0 };
+      filtered.forEach(e => { srcCounts[e.source] = (srcCounts[e.source] || 0) + 1; });
+
+      const srcData = {
+        labels: ['USGS Earthquakes', 'NASA EONET', 'NOAA Weather'],
+        datasets: [{
+          data: [srcCounts.usgs, srcCounts['nasa-eonet'], srcCounts['noaa-nws']],
+          backgroundColor: ['rgba(16, 185, 129, 0.7)', 'rgba(139, 92, 246, 0.7)', 'rgba(14, 165, 233, 0.7)'],
+          borderColor: ['#10b981', '#8b5cf6', '#0ea5e9'],
+          borderWidth: 1,
+          borderRadius: 6,
+        }],
+      };
+
+      if (sourceChart) {
+        sourceChart.data = srcData;
+        sourceChart.update();
+      } else {
+        const ctx = document.getElementById('source-chart');
+        if (ctx) {
+          sourceChart = new Chart(ctx, {
+            type: 'bar',
+            data: srcData,
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: { display: false },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 }, stepSize: 1 },
+                  grid: { color: 'rgba(148, 163, 184, 0.06)' },
+                },
+                x: {
+                  ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 } },
+                  grid: { display: false },
+                },
+              },
+            },
+          });
+        }
+      }
+    }
+
+    // ─── Source Health Rendering ──────────────────────────────────────────────
+
+    function updateSourceHealth(health) {
+      const grid = $('#source-health-grid');
+      if (!grid || !health || health.length === 0) return;
+
+      grid.innerHTML = health.map(s => {
+        const dot = s.status === 'ok' ? '🟢' : s.status === 'disabled' ? '⚪' : '🔴';
+        const time = s.responseTimeMs > 0 ? `${(s.responseTimeMs / 1000).toFixed(1)}s` : '—';
+        const errMsg = s.error ? `<div class="health-error">${escapeHtml(s.error)}</div>` : '';
+        return `
+          <div class="health-card ${s.status}">
+            <div class="health-header">
+              <span class="health-dot">${dot}</span>
+              <span class="health-name">${escapeHtml(s.name)}</span>
+            </div>
+            <div class="health-stats">
+              <span class="health-stat">${s.count} events</span>
+              <span class="health-stat">${time}</span>
+            </div>
+            ${errMsg}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Health toggle
+    const healthToggle = $('#health-toggle-btn');
+    if (healthToggle) {
+      healthToggle.addEventListener('click', () => {
+        const grid = $('#source-health-grid');
+        const isHidden = grid.style.display === 'none';
+        grid.style.display = isHidden ? '' : 'none';
+        healthToggle.textContent = isHidden ? 'Hide' : 'Show';
+      });
+    }
+
+    // ─── Delta / What Changed ───────────────────────────────────────────────
+
+    function updateDelta(delta) {
+      const section = $('#delta-section');
+      const grid = $('#delta-grid');
+      if (!section || !grid) return;
+
+      if (!delta || !delta.signals || delta.signals.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = '';
+      const { signals, summary } = delta;
+
+      const summaryHtml = `
+        <div class="delta-summary">
+          <span class="delta-stat new">🟢 ${summary.newEvents} new</span>
+          <span class="delta-stat removed">🔴 ${summary.removedEvents} removed</span>
+          <span class="delta-stat escalated">🟡 ${summary.escalated} escalated</span>
+          <span class="delta-stat deescalated">🔵 ${summary.deescalated} de-escalated</span>
+        </div>
+      `;
+
+      const signalsHtml = signals.slice(0, 10).map(s => {
+        const icon = s.type === 'new' ? '🟢' : s.type === 'removed' ? '🔴' : s.type === 'escalated' ? '🔺' : '🔻';
+        const label = s.type === 'escalated' ? `${s.from} → ${s.to}` : s.type === 'deescalated' ? `${s.from} → ${s.to}` : s.severity;
+        return `
+          <div class="delta-signal ${s.type}">
+            <span class="delta-icon">${icon}</span>
+            <span class="delta-title">${escapeHtml(s.title.length > 60 ? s.title.substring(0, 60) + '…' : s.title)}</span>
+            <span class="delta-label">${label}</span>
+          </div>
+        `;
+      }).join('');
+
+      grid.innerHTML = summaryHtml + signalsHtml;
+    }
+
+    // Delta toggle
+    const deltaToggle = $('#delta-toggle-btn');
+    if (deltaToggle) {
+      deltaToggle.addEventListener('click', () => {
+        const grid = $('#delta-grid');
+        const isHidden = grid.style.display === 'none';
+        grid.style.display = isHidden ? '' : 'none';
+        deltaToggle.textContent = isHidden ? 'Hide' : 'Show';
+      });
+    }
+
+    // ─── Sweep Timer ────────────────────────────────────────────────────────
+
+    function updateSweepTimer(sweep) {
+      if (!sweep) return;
+      nextSweepTime = sweep.nextSweepTime ? new Date(sweep.nextSweepTime).getTime() : null;
+
+      if (sweepTimerInterval) clearInterval(sweepTimerInterval);
+      sweepTimerInterval = setInterval(() => {
+        const timerEl = $('#sweep-timer');
+        if (!timerEl || !nextSweepTime) return;
+
+        const remaining = Math.max(0, nextSweepTime - Date.now());
+        if (remaining <= 0) {
+          timerEl.textContent = 'Refreshing…';
+          return;
+        }
+
+        const secs = Math.floor(remaining / 1000);
+        const mins = Math.floor(secs / 60);
+        const s = secs % 60;
+        timerEl.textContent = `↻ ${mins}:${s.toString().padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    // ─── SSE (Server-Sent Events) ───────────────────────────────────────────
+
+    function connectSSE() {
+      try {
+        const evtSource = new EventSource('/api/stream');
+
+        evtSource.onmessage = (e) => {
+          try {
+            const msg = JSON.parse(e.data);
+
+            if (msg.type === 'connected') {
+              console.log('[TerraMind] SSE connected');
+              if (msg.lastSweepTime) {
+                updateSweepTimer({
+                  nextSweepTime: msg.nextSweepTime,
+                  refreshIntervalMs: msg.refreshIntervalMs,
+                });
+              }
+            }
+
+            if (msg.type === 'sweep_start') {
+              $('#status-text').textContent = 'Refreshing…';
+              $('#status-dot').style.background = '#f59e0b';
+              const icon = $('#refresh-icon');
+              if (icon) icon.style.animation = 'spin 1s linear infinite';
+            }
+
+            if (msg.type === 'update') {
+              // SSE push received — re-fetch fresh data
+              fetchEvents();
+            }
+          } catch { /* ignore parse errors */ }
+        };
+
+        evtSource.onerror = () => {
+          console.warn('[TerraMind] SSE connection lost, reconnecting...');
+          evtSource.close();
+          // Reconnect after 5 seconds
+          setTimeout(connectSSE, 5000);
+        };
+      } catch {
+        console.warn('[TerraMind] SSE not supported, using polling fallback');
+        setInterval(() => fetchEvents(), 120_000);
+      }
+    }
+
+    // ─── Theme Toggle ──────────────────────────────────────────────────────
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('tm-theme', theme);
+      const btn = $('#btn-theme');
+      if (btn) btn.textContent = theme === 'dark' ? '☀' : '☾';
+
+      // Swap map tiles if map is loaded
+      if (leafletMap && currentTileLayer) {
+        leafletMap.removeLayer(currentTileLayer);
+        currentTileLayer = L.tileLayer(getMapTileUrl(), {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+          subdomains: 'abcd',
+        }).addTo(leafletMap);
+      }
+    }
+
+    // Initialize theme
+    const savedTheme = localStorage.getItem('tm-theme')
+      || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    applyTheme(savedTheme);
+
+    // Toggle button
+    const btnTheme = $('#btn-theme');
+    if (btnTheme) {
+      btnTheme.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme') || 'dark';
+        applyTheme(current === 'dark' ? 'light' : 'dark');
+      });
+    }
+
+    // ─── Init ───────────────────────────────────────────────────────────────
+
+    // Fetch data immediately
+    fetchEvents();
+
+    // Connect SSE for live push updates (replaces polling)
+    connectSSE();
+
+    // Load Leaflet JS as progressive enhancement
+    const leafletScript = document.createElement('script');
+    leafletScript.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    leafletScript.onload = () => {
+      initMap();
+      updateMap();
+    };
+    leafletScript.onerror = () => {
+      console.warn('[TerraMind] Leaflet CDN unavailable — map disabled');
+      $('#map-container').innerHTML = '<div style="text-align:center;padding:40px;color:#64748b">Map unavailable</div>';
+    };
+    document.head.appendChild(leafletScript);
+
+    // Load Chart.js as progressive enhancement
+    const chartScript = document.createElement('script');
+    chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    chartScript.onload = () => {
+      updateCharts();
+    };
+    chartScript.onerror = () => {
+      console.warn('[TerraMind] Chart.js CDN unavailable — charts disabled');
+    };
+    document.head.appendChild(chartScript);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,60 @@
+{
+  "name": "terramind-core",
+  "version": "4.0.0",
+  "description": "TerraMind Core — Global disaster intelligence platform. Real-time aggregation of USGS Earthquakes, NASA EONET Wildfires/Storms, NOAA Weather Alerts, and NASA FIRMS Fire Detection into a unified API with interactive dashboard and AI-powered GeoScience assistant.",
+  "main": "dist/api/server.js",
+  "scripts": {
+    "dev": "tsx watch src/api/server.ts",
+    "build": "tsc",
+    "start": "node dist/api/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/ tests/"
+  },
+  "keywords": [
+    "disaster",
+    "earthquake",
+    "wildfire",
+    "fire",
+    "flood",
+    "hurricane",
+    "usgs",
+    "nasa",
+    "eonet",
+    "noaa",
+    "firms",
+    "satellite",
+    "remote-sensing",
+    "geoscience",
+    "real-time",
+    "api"
+  ],
+  "author": "masood1996-geo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/masood1996-geo/terramind-core"
+  },
+  "homepage": "https://github.com/masood1996-geo/terramind-core#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "express": "^4.21.1",
+    "express-rate-limit": "^8.3.2",
+    "helmet": "^8.1.0",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/swagger-ui-express": "^4.1.7",
+    "axios-mock-adapter": "^2.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
+
