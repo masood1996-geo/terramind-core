@@ -1,78 +1,42 @@
-<p align="center">
-  <h1 align="center">🌍 TerraMind Core</h1>
-  <p align="center"><strong>Global Disaster Intelligence Platform</strong></p>
-  <p align="center">
-    Real-time aggregation of USGS Earthquakes · NASA EONET Wildfires & Storms · NOAA Weather Alerts · NASA FIRMS Fire Detection
-  </p>
-</p>
+<div align="center">
 
-<p align="center">
-  <img src="https://img.shields.io/badge/TypeScript-5.7+-3178c6?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Node.js-22+-339933?logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white" alt="Express" />
-  <img src="https://img.shields.io/badge/License-MIT-blue" alt="MIT License" />
-  <img src="https://img.shields.io/badge/Data-4%20Sources-success" alt="4 Data Sources" />
-</p>
+**Stop juggling disconnected government feeds.** 
+TerraMind fuses USGS Earthquakes, NASA EONET Wildfires, NOAA Weather Alerts, and NASA FIRMS Satellite Fire Detection into one real-time dashboard with an AI-powered GeoScience assistant — all free, all open source.
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.x-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![AI Powered](https://img.shields.io/badge/AI-GeoScience%20Chat-FF6F00?style=for-the-badge&logo=openai&logoColor=white)]()
+[![Data Sources](https://img.shields.io/badge/Sources-4%20Gov%20APIs-blueviolet?style=for-the-badge)]()
 
 ---
-
-## What Is TerraMind?
-
-TerraMind Core is an open-source disaster intelligence platform that aggregates, normalizes, and visualizes natural disaster events from **four authoritative government data sources** through a unified REST API and interactive web dashboard.
-
-Unlike commercial alternatives (DisasterAWARE at $50k+/year, RiskPulse at $25k+/year), TerraMind provides professional-grade disaster intelligence at **zero cost**, powered entirely by free government APIs.
-
-### Key Features
-
-- **🔗 Multi-Source Aggregation** — USGS earthquakes, NASA EONET wildfires/storms, NOAA NWS severe weather, and NASA FIRMS satellite fire detections in one unified API
-- **📊 Unified Schema** — Heterogeneous data normalized into a consistent `GlobalDisasterEvent` format with Zod validation
-- **🔴 Real-Time Streaming** — Server-Sent Events (SSE) push live updates without polling
-- **🤖 AI GeoScience Assistant** — Chat interface (via Kilo Gateway) that guides satellite data analysis with event-specific recommendations
-- **🗺️ Interactive Dashboard** — Premium dark/light theme with Leaflet map, severity filtering, category filtering, and event detail modals
-- **🔒 Security-First** — Helmet CSP, rate limiting (60 req/min), Zod input validation, backend-proxied AI
-- **🌐 Global Coverage** — Fire detections from 11 regions covering all continents, earthquakes worldwide, US weather alerts
-
----
-
-## Architecture
 
 ```
-terramind-core/
-├── src/
-│   ├── clients/
-│   │   ├── usgs.ts          # USGS GeoJSON earthquake feed client
-│   │   ├── nasa.ts          # NASA EONET wildfire & storm client
-│   │   ├── noaa.ts          # NOAA NWS severe weather alert client
-│   │   └── firms.ts         # NASA FIRMS satellite fire detection (global)
-│   ├── pipeline/
-│   │   ├── normalizer.ts    # Multi-source → GlobalDisasterEvent schema
-│   │   └── delta.ts         # Change detection / diff engine
-│   └── api/
-│       ├── server.ts         # Express API server (560 lines)
-│       └── swagger.ts        # OpenAPI 3.0 specification
-├── public/
-│   ├── index.html           # Single-page dashboard
-│   └── index.css            # Complete design system (dark/light themes)
-├── tests/
-│   └── clients.test.ts      # Unit tests with mocked HTTP
-├── .env.example             # Environment template (no secrets)
-├── package.json
-├── tsconfig.json
-└── vitest.config.ts
+  ████████╗███████╗██████╗ ██████╗  █████╗ ███╗   ███╗██╗███╗   ██╗██████╗
+  ╚══██╔══╝██╔════╝██╔══██╗██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗
+     ██║   █████╗  ██████╔╝██████╔╝███████║██╔████╔██║██║██╔██╗ ██║██║  ██║
+     ██║   ██╔══╝  ██╔══██╗██╔══██╗██╔══██║██║╚██╔╝██║██║██║╚██╗██║██║  ██║
+     ██║   ███████╗██║  ██║██║  ██║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██████╔╝
+     ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═════╝
+                    Global Disaster Intelligence Platform
 ```
+
+</div>
 
 ---
 
-## Data Sources
+Commercial disaster platforms charge $25k–$50k/year for what TerraMind does for free. The difference:
 
-| Source | API | Data | Coverage |
-|--------|-----|------|----------|
-| **USGS** | [Earthquake GeoJSON Feed](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php) | All earthquakes (hour/day/week) | 🌍 Global |
-| **NASA EONET** | [Earth Observatory Natural Event Tracker v3](https://eonet.gsfc.nasa.gov/docs/v3) | Wildfires & severe storms | 🌍 Global |
-| **NOAA NWS** | [National Weather Service API](https://www.weather.gov/documentation/services-web-api) | Tornado, hurricane, flood, tsunami warnings | 🇺🇸 United States |
-| **NASA FIRMS** | [Fire Information for Resource Management](https://firms.modaps.eosdis.nasa.gov/api/area/) | Satellite fire detections (VIIRS, 375m) | 🌍 Global (11 regions) |
-
-> **Note:** USGS, NASA EONET, and NOAA require **no API keys**. NASA FIRMS requires a free MAP_KEY (get one at the link above).
+| Commercial Platforms | TerraMind Core |
+|---------------------|----------------|
+| ❌ $50k+/year for DisasterAWARE | ✅ **100% free** — MIT license |
+| ❌ Proprietary, closed data | ✅ Open government APIs, full transparency |
+| ❌ No satellite imagery guidance | ✅ **AI-powered GeoScience assistant** with band/index recommendations |
+| ❌ Separate tools for each hazard type | ✅ **4 sources unified** in one schema |
+| ❌ No real-time streaming | ✅ **SSE push** — live updates without polling |
+| ❌ Complex setup, vendor lock-in | ✅ **One command** to install and run |
+| ❌ Black box severity |  ✅ **Transparent** Richter/FRP/NWS classification |
 
 ---
 
@@ -83,31 +47,22 @@ git clone https://github.com/masood1996-geo/terramind-core.git && cd terramind-c
 ```
 
 The interactive setup wizard will:
-
 1. **Guide you** through getting free API keys (with direct links)
 2. **Create your `.env`** file automatically
 3. **Install dependencies**
 4. **Start the server** — dashboard opens at `http://localhost:4100`
 
-> **No API keys needed to start!** USGS, NASA EONET, and NOAA work without any keys. The wizard helps you optionally enable NASA FIRMS fire detection and the AI assistant.
+> **No API keys needed to start!** USGS, NASA EONET, and NOAA work without any keys. The wizard optionally enables FIRMS fire detection and the AI assistant.
 
 <details>
 <summary><strong>Manual Setup (Advanced)</strong></summary>
 
 ```bash
-# Clone
 git clone https://github.com/masood1996-geo/terramind-core.git
 cd terramind-core
-
-# Configure
-cp .env.example .env
-# Edit .env — add your FIRMS_MAP_KEY and/or KILOCODE_API_KEY
-
-# Install & run
+cp .env.example .env    # Edit with your FIRMS_MAP_KEY / KILOCODE_API_KEY
 pnpm install
-pnpm dev
-
-# Open http://localhost:4100
+pnpm dev                # → http://localhost:4100
 ```
 
 </details>
@@ -116,32 +71,99 @@ pnpm dev
 
 | Key | Free? | Link | What It Enables |
 |-----|-------|------|-----------------|
-| **NASA FIRMS MAP_KEY** | ✅ Free | [Get key →](https://firms.modaps.eosdis.nasa.gov/api/area/) | Global satellite fire detection (VIIRS, 375m) |
+| **NASA FIRMS MAP_KEY** | ✅ Free | [Get key →](https://firms.modaps.eosdis.nasa.gov/api/area/) | Global satellite fire detection (VIIRS, 375m resolution) |
 | **Kilo Gateway API Key** | ✅ Free tier | [Get key →](https://app.kilo.ai) | AI-powered GeoScience chat assistant |
 
-### Run Tests
+---
 
-```bash
-pnpm test
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🌍 **4-Source Aggregation** | USGS earthquakes, NASA EONET wildfires/storms, NOAA weather alerts, NASA FIRMS global fire detections — merged into one feed |
+| 📊 **Unified Schema** | Heterogeneous government data normalized into `GlobalDisasterEvent` with Zod validation |
+| 🔴 **Real-Time SSE** | Server-Sent Events push live data updates — no polling, no WebSockets |
+| 🤖 **AI GeoScience Chat** | Ask about satellite bands, spectral indices, processing workflows — powered by Kilo Gateway with built-in fallback |
+| 🗺️ **Interactive Map** | Leaflet + CartoDB Dark Matter basemap with severity-colored markers |
+| 📈 **Analytics Charts** | Severity distribution, source breakdown, timeline analysis (Chart.js) |
+| 🎨 **Premium UI** | Dark/light theme, glassmorphism cards, micro-animations, mobile responsive |
+| 🔍 **Smart Filtering** | Category dropdown, severity chips, text search, source filter — all composable |
+| 🛡️ **Security-First** | Helmet CSP, rate limiting (60/min), Zod validation, server-side API key proxy |
+| 🌐 **Global Coverage** | Fire detection across 11 regions (all continents), earthquakes worldwide, US weather alerts |
+| 📖 **Swagger UI** | Full OpenAPI 3.0 interactive documentation at `/api/docs` |
+| 🔬 **Satellite Data Reference** | Built-in help cards with recommended bands, indices, and data portal links per disaster type |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Client (Browser)                              │
+│  Leaflet Map · Event Cards · Charts · AI Chat · Theme Switcher       │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │ HTTP / SSE
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Express.js API Server                            │
+│                                                                      │
+│  /api/events ── Merged + filtered disaster events                    │
+│  /api/stream ── Server-Sent Events (real-time push)                  │
+│  /api/health ── Upstream status + cache metrics                      │
+│  /api/delta ─── Change detection (new/removed/escalated)             │
+│  /api/ai/chat ─ GeoScience AI proxy (Kilo Gateway → fallback)       │
+│  /api/docs ──── Swagger UI (OpenAPI 3.0)                             │
+│                                                                      │
+│  Helmet CSP · Rate Limit · Zod Validation · Response Cache           │
+└────┬───────────┬───────────┬───────────┬────────────────────────────┘
+     │           │           │           │
+     ▼           ▼           ▼           ▼
+┌─────────┐┌─────────┐┌─────────┐┌──────────────┐
+│  USGS   ││  NASA   ││  NOAA   ││  NASA FIRMS  │
+│Earthquake││ EONET   ││  NWS    ││  Fire Detect │
+│GeoJSON  ││ v3 API  ││Alerts   ││  VIIRS/375m  │
+│  Feed   ││         ││  API    ││  CSV → JSON  │
+└────┬────┘└────┬────┘└────┬────┘└──────┬───────┘
+     │          │          │            │
+     └──────────┴──────────┴────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Normalization Pipeline                             │
+│  Multi-format parsing → Severity classification → Coordinate         │
+│  extraction → GlobalDisasterEvent schema → Delta engine              │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## API Reference
+## 📡 Data Sources
+
+| Source | API | Data | Coverage | Key? |
+|--------|-----|------|----------|------|
+| 🟢 **USGS** | [Earthquake GeoJSON Feed](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php) | All earthquakes (hour/day/week) | 🌍 Global | No |
+| 🟢 **NASA EONET** | [Earth Observatory Natural Event Tracker v3](https://eonet.gsfc.nasa.gov/docs/v3) | Wildfires & severe storms | 🌍 Global | No |
+| 🟢 **NOAA NWS** | [National Weather Service API](https://www.weather.gov/documentation/services-web-api) | Tornado, hurricane, flood, tsunami warnings | 🇺🇸 USA | No |
+| 🟡 **NASA FIRMS** | [Fire Information for Resource Management](https://firms.modaps.eosdis.nasa.gov/api/area/) | Satellite fire detections (VIIRS, 375m) | 🌍 Global (11 regions) | Free key |
+
+---
+
+## 🔌 API Reference
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/events` | Merged, normalized disaster events from all sources |
+| `GET` | `/api/events` | Merged, normalized disaster events |
 | `GET` | `/api/events?source=usgs` | Filter by source (`usgs`, `nasa-eonet`, `noaa-nws`, `nasa-firms`) |
 | `GET` | `/api/events?severity=critical` | Filter by severity (`minor`, `moderate`, `major`, `critical`) |
 | `GET` | `/api/events?timeRange=week` | Earthquake time window (`hour`, `day`, `week`) |
-| `GET` | `/api/stream` | Server-Sent Events — real-time push updates |
+| `GET` | `/api/stream` | Server-Sent Events — real-time push |
 | `GET` | `/api/health` | Health check + upstream source status |
 | `GET` | `/api/delta` | Changes since last data sweep |
-| `POST` | `/api/ai/chat` | AI GeoScience assistant (message + eventContext) |
-| `GET` | `/api/docs` | Interactive Swagger UI documentation |
+| `POST` | `/api/ai/chat` | AI GeoScience assistant |
+| `GET` | `/api/docs` | Interactive Swagger UI |
 
-### Response Example
+<details>
+<summary><strong>📋 Response Example (click to expand)</strong></summary>
 
 ```json
 {
@@ -175,31 +197,15 @@ pnpm test
 }
 ```
 
----
-
-## GlobalDisasterEvent Schema
-
-```typescript
-{
-  id: string;                    // Source-prefixed unique ID (e.g., "usgs-ci40917392")
-  source: 'usgs' | 'nasa-eonet' | 'noaa-nws' | 'nasa-firms';
-  title: string;                 // Human-readable event title
-  severity: 'minor' | 'moderate' | 'major' | 'critical' | 'unknown';
-  coordinates: {
-    longitude: number;
-    latitude: number;
-  };
-  timestamp: string;             // ISO 8601
-  eventType: string;             // e.g., 'earthquake', 'fire', 'Tornado Warning'
-  metadata?: Record<string, unknown>;  // Source-specific fields
-}
-```
+</details>
 
 ---
 
-## Severity Classification
+## 📏 Severity Classification
 
-### Earthquakes (USGS — Richter Scale)
+<details>
+<summary><strong>Earthquakes (USGS — Richter Scale)</strong></summary>
+
 | Magnitude | Severity |
 |-----------|----------|
 | < 3.0 | `minor` |
@@ -207,7 +213,11 @@ pnpm test
 | 5.0 – 6.9 | `major` |
 | ≥ 7.0 | `critical` |
 
-### Storms (NASA EONET — Wind Speed)
+</details>
+
+<details>
+<summary><strong>Storms (NASA EONET — Wind Speed)</strong></summary>
+
 | Wind Speed | Severity |
 |------------|----------|
 | < 34 kts | `minor` |
@@ -215,7 +225,11 @@ pnpm test
 | 64 – 95 kts | `major` |
 | ≥ 96 kts | `critical` |
 
-### Weather Alerts (NOAA NWS)
+</details>
+
+<details>
+<summary><strong>Weather Alerts (NOAA NWS)</strong></summary>
+
 | NWS Level | Severity |
 |-----------|----------|
 | Minor | `minor` |
@@ -223,7 +237,11 @@ pnpm test
 | Severe | `major` |
 | Extreme | `critical` |
 
-### Fire Detection (NASA FIRMS — FRP in MW)
+</details>
+
+<details>
+<summary><strong>Fire Detection (NASA FIRMS — FRP)</strong></summary>
+
 | FRP Range | Severity |
 |-----------|----------|
 | < 10 MW | `minor` |
@@ -231,67 +249,97 @@ pnpm test
 | 50 – 100 MW | `major` |
 | ≥ 100 MW | `critical` |
 
----
-
-## Dashboard Features
-
-- **Interactive Map** — Leaflet with CartoDB Dark Matter basemap, severity-colored markers
-- **Event Cards / Table View** — Switchable layouts with full event details
-- **Analytics Charts** — Severity distribution, source breakdown, timeline (Chart.js)
-- **Severity Filtering** — Quick-filter chips (Critical, Major, Moderate, Minor)
-- **Category Dropdown** — Filter by disaster type (Earthquake, Fire, Storm, Flood, etc.)
-- **Search** — Real-time text search across event titles
-- **Dark / Light Theme** — Premium design with localStorage persistence
-- **Event Detail Modal** — Two tabs: Overview + GeoScience satellite data analysis
-- **Help Section** — Satellite data reference cards + AI chat for analysis guidance
+</details>
 
 ---
 
-## GeoScience AI Assistant
+## 🤖 GeoScience AI Assistant
 
 The AI assistant helps developers and geoscientists analyze disaster events using satellite imagery:
 
 - **Event-specific recommendations** — NBR/SWIR for fires, InSAR for earthquakes, NDWI/SAR for floods
 - **Pre-filled satellite data portal links** — USGS EarthExplorer, Copernicus, NASA Worldview, Google Earth Engine
-- **Chat interface** — Ask questions about satellite bands, spectral indices, processing workflows
-- **Fallback engine** — Built-in knowledge base works even without API key
+- **Chat interface** — Ask about satellite bands, spectral indices, processing workflows
+- **Fallback engine** — Built-in knowledge base works even without an API key
 
-> **AI Backend:** [Kilo Gateway](https://kilocode.ai) (optional, free tier available). Without an API key, the built-in GeoScience knowledge engine provides expert-level guidance.
+| Provider | Setup | Free? |
+|----------|-------|-------|
+| **Kilo Gateway** | [Get Key](https://app.kilo.ai) | ✅ Free tier available |
+| **Built-in Engine** | No key needed | ✅ Always available |
+
+> **💡 Tip:** Without a Kilo API key, the built-in GeoScience knowledge engine provides expert-level guidance on remote sensing workflows. The AI key just adds conversational flexibility.
 
 ---
 
-## Environment Variables
+## 📂 Project Structure
+
+```
+terramind-core/
+├── src/
+│   ├── clients/
+│   │   ├── usgs.ts          # USGS GeoJSON earthquake feed client
+│   │   ├── nasa.ts          # NASA EONET wildfire & storm client
+│   │   ├── noaa.ts          # NOAA NWS severe weather alert client
+│   │   └── firms.ts         # NASA FIRMS satellite fire detection (global)
+│   ├── pipeline/
+│   │   ├── normalizer.ts    # Multi-source → GlobalDisasterEvent schema
+│   │   └── delta.ts         # Change detection / diff engine
+│   └── api/
+│       ├── server.ts         # Express API server (560 lines)
+│       └── swagger.ts        # OpenAPI 3.0 specification
+├── public/
+│   ├── index.html           # Single-page dashboard (dark/light themes)
+│   └── index.css            # Complete design system (1000+ lines)
+├── tests/
+│   └── clients.test.ts      # Unit tests with mocked HTTP
+├── setup.js                 # 🚀 Interactive setup wizard
+├── .env.example             # Environment template (no secrets)
+├── package.json
+├── tsconfig.json
+└── vitest.config.ts
+```
+
+---
+
+## ⚙️ Configuration
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `PORT` | No | `4100` | Server listening port |
 | `HOST` | No | `0.0.0.0` | Server bind address |
-| `FIRMS_MAP_KEY` | No* | (none) | NASA FIRMS API key — enables global fire detection |
-| `KILOCODE_API_KEY` | No* | (none) | Kilo Gateway JWT — enables AI assistant |
-| `CACHE_TTL` | No | `60000` | Response cache TTL in ms |
-| `REFRESH_INTERVAL` | No | `120000` | Auto-refresh interval in ms |
-
-> *The platform works without these keys — USGS, NASA EONET, and NOAA NWS require no API keys.
+| `FIRMS_MAP_KEY` | No | — | NASA FIRMS API key → enables global fire detection |
+| `KILOCODE_API_KEY` | No | — | Kilo Gateway key → enables AI GeoScience chat |
+| `CACHE_TTL` | No | `60000` | Response cache TTL (ms) |
+| `REFRESH_INTERVAL` | No | `120000` | Auto-refresh interval (ms) |
 
 ---
 
-## Security
+## 🛡️ Security
 
 - **Helmet CSP** — Strict Content Security Policy headers
 - **Rate Limiting** — 60 requests/minute per IP
-- **Input Validation** — Zod schema validation on all query parameters
-- **Body Size Limit** — 100KB max request body
-- **API Key Protection** — All keys stored server-side, AI requests proxied through backend
+- **Zod Validation** — Schema validation on all query parameters
+- **Body Limit** — 100KB max request body
+- **API Key Proxy** — All keys stored server-side, AI requests proxied through backend
 - **CORS** — Restricted to configured origins in production
 - **Graceful Shutdown** — Clean SSE disconnection on SIGTERM/SIGINT
 
 ---
 
-## Tech Stack
+## 🧪 Testing
+
+```bash
+pnpm test           # Run all tests
+pnpm test:watch     # Watch mode
+```
+
+---
+
+## 🔗 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | Node.js 22+ |
+| Runtime | Node.js 20+ |
 | Language | TypeScript (strict mode) |
 | HTTP | Express.js 4.x |
 | Validation | Zod 3.x |
@@ -305,10 +353,22 @@ The AI assistant helps developers and geoscientists analyze disaster events usin
 
 ---
 
-## Contributing
+## 🗺️ Part of the Masood Sultan AI Ecosystem
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+| Project | Description |
+|---------|-------------|
+| **[TerraMind Core](https://github.com/masood1996-geo/terramind-core)** | Global disaster intelligence platform *(this repo)* |
+| **[OpenHouse Bot](https://github.com/masood1996-geo/openhouse-bot)** | AI-powered apartment hunting across 50+ portals worldwide |
+| **[AI Scraper](https://github.com/masood1996-geo/ai-scraper)** | Self-learning web scraper — point at any website, get structured data |
 
-## License
+---
 
-[MIT](LICENSE) — free for commercial and research use.
+<div align="center">
+
+**Built at the intersection of geoscience and AI 🌍**
+
+*If TerraMind helps your research or disaster response work, consider starring the repo ⭐*
+
+MIT License · Built by [@masood1996-geo](https://github.com/masood1996-geo)
+
+</div>
