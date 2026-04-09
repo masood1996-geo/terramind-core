@@ -59,6 +59,9 @@ app.use(helmet({
   },
 }));
 
+// Trust reverse proxy (required for HuggingFace Spaces, Heroku, etc.)
+app.set('trust proxy', 1);
+
 // Rate limiting — 60 requests per minute per IP
 app.use('/api/', rateLimit({
   windowMs: 60_000,
