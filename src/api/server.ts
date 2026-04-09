@@ -57,6 +57,10 @@ app.use(helmet({
       connectSrc: ["'self'"],
     },
   },
+  // Allow embedding in HuggingFace Spaces iframe
+  frameguard: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false,
 }));
 
 // Trust reverse proxy (required for HuggingFace Spaces, Heroku, etc.)
