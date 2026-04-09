@@ -1,11 +1,290 @@
-# 🌍 TerraMind Core
+<div align="center">
 
-> **Global Disaster Intelligence Platform**
-> Normalizes USGS Earthquake, NASA EONET, NOAA NWS, NASA FIRMS, and GlobalBuildingAtlas data into a unified, queryable API with building exposure analysis.
+**Stop juggling disconnected government feeds.** 
+TerraMind fuses USGS Earthquakes, NASA EONET Wildfires, NOAA Weather Alerts, NASA FIRMS Satellite Fire Detection, and [GlobalBuildingAtlas](https://github.com/zhu-xlab/GlobalBuildingAtlas) building exposure into one real-time dashboard with an AI-powered GeoScience assistant — all free, all open source.
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.x-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![AI Powered](https://img.shields.io/badge/AI-GeoScience%20Chat-FF6F00?style=for-the-badge&logo=openai&logoColor=white)]()
+[![Data Sources](https://img.shields.io/badge/Sources-5%20Data%20APIs-blueviolet?style=for-the-badge)]()
+[![Live Demo](https://img.shields.io/badge/%F0%9F%A4%97_Demo-Live_on_HuggingFace-orange?style=for-the-badge)](https://huggingface.co/spaces/masood1996/terramind-core)
 
 ---
 
-## Architecture
+```
+  ████████╗███████╗██████╗ ██████╗  █████╗ ███╗   ███╗██╗███╗   ██╗██████╗
+  ╚══██╔══╝██╔════╝██╔══██╗██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗
+     ██║   █████╗  ██████╔╝██████╔╝███████║██╔████╔██║██║██╔██╗ ██║██║  ██║
+     ██║   ██╔══╝  ██╔══██╗██╔══██╗██╔══██║██║╚██╔╝██║██║██║╚██╗██║██║  ██║
+     ██║   ███████╗██║  ██║██║  ██║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██████╔╝
+     ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═════╝
+                    Global Disaster Intelligence Platform
+```
+
+</div>
+---
+
+## 🎮 Try it Live
+> **No installation needed — [try the live demo on Hugging Face](https://huggingface.co/spaces/masood1996/terramind-core)**
+>
+> Real earthquakes from USGS, real wildfires from NASA EONET, real weather alerts from NOAA — updated every 2 minutes.
+
+---
+
+Commercial disaster platforms charge $25k–$50k/year for what TerraMind does for free. The difference:
+
+| Commercial Platforms | TerraMind Core |
+|---------------------|----------------|
+| ❌ $50k+/year for DisasterAWARE | ✅ **100% free** — MIT license |
+| ❌ Proprietary, closed data | ✅ Open government APIs, full transparency |
+| ❌ No satellite imagery guidance | ✅ **AI-powered GeoScience assistant** with band/index recommendations |
+| ❌ Separate tools for each hazard type | ✅ **5 sources unified** in one schema |
+| ❌ No infrastructure impact data | ✅ **Building exposure analysis** via GlobalBuildingAtlas |
+| ❌ No real-time streaming | ✅ **SSE push** — live updates without polling |
+| ❌ Complex setup, vendor lock-in | ✅ **One command** to install and run |
+| ❌ Black box severity |  ✅ **Transparent** Richter/FRP/NWS classification |
+
+---
+
+## ⚡ One-Line Install
+
+```bash
+git clone https://github.com/masood1996-geo/terramind-core.git && cd terramind-core && node setup.js
+```
+
+The interactive setup wizard will:
+1. **Guide you** through getting free API keys (with direct links)
+2. **Create your `.env`** file automatically
+3. **Install dependencies**
+4. **Start the server** — dashboard opens at `http://localhost:4100`
+
+> **No API keys needed to start!** USGS, NASA EONET, NOAA, and GlobalBuildingAtlas work without any keys. The wizard optionally enables FIRMS fire detection and the AI assistant.
+
+<details>
+<summary><strong>Manual Setup (Advanced)</strong></summary>
+
+```bash
+git clone https://github.com/masood1996-geo/terramind-core.git
+cd terramind-core
+cp .env.example .env    # Edit with your FIRMS_MAP_KEY / KILOCODE_API_KEY
+pnpm install
+pnpm dev                # → http://localhost:4100
+```
+
+</details>
+
+### Where to Get API Keys
+
+| Key | Free? | Link | What It Enables |
+|-----|-------|------|-----------------|
+| **NASA FIRMS MAP_KEY** | ✅ Free | [Get key →](https://firms.modaps.eosdis.nasa.gov/api/area/) | Global satellite fire detection (VIIRS, 375m resolution) |
+| **Kilo Gateway API Key** | ✅ Free tier | [Get key →](https://app.kilo.ai) | AI-powered GeoScience chat assistant |
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🌍 **5-Source Aggregation** | USGS earthquakes, NASA EONET wildfires/storms, NOAA weather alerts, NASA FIRMS fire detections, and GlobalBuildingAtlas building exposure — merged into one feed |
+| 📊 **Unified Schema** | Heterogeneous government data normalized into `GlobalDisasterEvent` with Zod validation |
+| 🔴 **Real-Time SSE** | Server-Sent Events push live data updates — no polling, no WebSockets |
+| 🤖 **AI GeoScience Chat** | Ask about satellite bands, spectral indices, processing workflows — powered by Kilo Gateway with built-in fallback |
+| 🗺️ **Interactive Map** | Leaflet + CartoDB Dark Matter basemap with severity-colored markers |
+| 📈 **Analytics Charts** | Severity distribution, source breakdown, timeline analysis (Chart.js) |
+| 🎨 **Premium UI** | Dark/light theme, glassmorphism cards, micro-animations, mobile responsive |
+| 🔍 **Smart Filtering** | Category dropdown, severity chips, text search, source filter — all composable |
+| 🛡️ **Security-First** | Helmet CSP, rate limiting (60/min), Zod validation, server-side API key proxy |
+| 🌐 **Global Coverage** | Fire detection across 11 regions (all continents), earthquakes worldwide, US weather alerts |
+| 📖 **Swagger UI** | Full OpenAPI 3.0 interactive documentation at `/api/docs` |
+| 🔬 **Satellite Data Reference** | Built-in help cards with recommended bands, indices, and data portal links per disaster type |
+| 🏗️ **Building Exposure** | On-demand building count, height stats, and density classification for any disaster zone via [GlobalBuildingAtlas](https://github.com/zhu-xlab/GlobalBuildingAtlas) WFS |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Client (Browser)                              │
+│  Leaflet Map · Event Cards · Charts · AI Chat · Theme Switcher       │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │ HTTP / SSE
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Express.js API Server                            │
+│                                                                      │
+│  /api/events ─── Merged + filtered disaster events                   │
+│  /api/buildings  Building exposure (GlobalBuildingAtlas WFS)          │
+│  /api/stream ─── Server-Sent Events (real-time push)                 │
+│  /api/health ─── Upstream status + cache metrics                     │
+│  /api/delta ──── Change detection (new/removed/escalated)            │
+│  /api/ai/chat ── GeoScience AI proxy (Kilo Gateway → fallback)      │
+│  /api/docs ───── Swagger UI (OpenAPI 3.0)                            │
+│                                                                      │
+│  Helmet CSP · Rate Limit · Zod Validation · Response Cache           │
+└────┬───────────┬───────────┬───────────┬────────────────────────────┘
+     │           │           │           │
+     ▼           ▼           ▼           ▼
+┌─────────┐┌─────────┐┌─────────┐┌──────────────┐┌──────────────┐
+│  USGS   ││  NASA   ││  NOAA   ││  NASA FIRMS  ││     GBA      │
+│Earthquake││ EONET   ││  NWS    ││  Fire Detect ││ Building     │
+│GeoJSON  ││ v3 API  ││Alerts   ││  VIIRS/375m  ││ Atlas WFS    │
+│  Feed   ││         ││  API    ││  CSV → JSON  ││ (on-demand)  │
+└────┬────┘└────┬────┘└────┬────┘└──────┬───────┘└──────┬───────┘
+     │          │          │            │               │
+     └──────────┴──────────┴────────────┴───────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Normalization Pipeline                             │
+│  Multi-format parsing → Severity classification → Coordinate         │
+│  extraction → GlobalDisasterEvent schema → Delta engine              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📡 Data Sources
+
+| Source | API | Data | Coverage | Key? |
+|--------|-----|------|----------|------|
+| 🟢 **USGS** | [Earthquake GeoJSON Feed](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php) | All earthquakes (hour/day/week) | 🌍 Global | No |
+| 🟢 **NASA EONET** | [Earth Observatory Natural Event Tracker v3](https://eonet.gsfc.nasa.gov/docs/v3) | Wildfires & severe storms | 🌍 Global | No |
+| 🟢 **NOAA NWS** | [National Weather Service API](https://www.weather.gov/documentation/services-web-api) | Tornado, hurricane, flood, tsunami warnings | 🇺🇸 USA | No |
+| 🟡 **NASA FIRMS** | [Fire Information for Resource Management](https://firms.modaps.eosdis.nasa.gov/api/area/) | Satellite fire detections (VIIRS, 375m) | 🌍 Global (11 regions) | Free key |
+| 🟢 **GBA** | [GlobalBuildingAtlas WFS](https://github.com/zhu-xlab/GlobalBuildingAtlas) | Building footprints, heights & exposure | 🌍 Global | No |
+
+---
+
+## 🔌 API Reference
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/events` | Merged, normalized disaster events |
+| `GET` | `/api/events?source=usgs` | Filter by source (`usgs`, `nasa-eonet`, `noaa-nws`, `nasa-firms`) |
+| `GET` | `/api/events?severity=critical` | Filter by severity (`minor`, `moderate`, `major`, `critical`) |
+| `GET` | `/api/events?timeRange=week` | Earthquake time window (`hour`, `day`, `week`) |
+| `GET` | `/api/buildings?lat=35.89&lon=-117.6` | Building exposure around coordinates (GBA) |
+| `GET` | `/api/buildings?lat=35.89&lon=-117.6&radius=10` | Custom search radius in km (max: 50) |
+| `GET` | `/api/stream` | Server-Sent Events — real-time push |
+| `GET` | `/api/health` | Health check + upstream source status |
+| `GET` | `/api/delta` | Changes since last data sweep |
+| `POST` | `/api/ai/chat` | AI GeoScience assistant |
+| `GET` | `/api/docs` | Interactive Swagger UI |
+
+<details>
+<summary><strong>📋 Response Example (click to expand)</strong></summary>
+
+```json
+{
+  "success": true,
+  "count": 42,
+  "timestamp": "2026-04-08T22:00:00.000Z",
+  "sources": {
+    "usgs": { "status": "ok", "count": 15 },
+    "nasa": { "status": "ok", "count": 3 },
+    "noaa": { "status": "ok", "count": 12 },
+    "firms": { "status": "ok", "count": 12 }
+  },
+  "events": [
+    {
+      "id": "usgs-ci40917392",
+      "source": "usgs",
+      "title": "M 5.6 - 45km NNE of Ridgecrest, CA",
+      "severity": "major",
+      "coordinates": { "longitude": -117.602, "latitude": 35.891 },
+      "timestamp": "2026-04-08T16:00:00.000Z",
+      "eventType": "earthquake",
+      "metadata": {
+        "magnitude": 5.6,
+        "magType": "mw",
+        "depth": 8.5,
+        "tsunami": 0,
+        "sig": 499
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+---
+
+## 📏 Severity Classification
+
+<details>
+<summary><strong>Earthquakes (USGS — Richter Scale)</strong></summary>
+
+| Magnitude | Severity |
+|-----------|----------|
+| < 3.0 | `minor` |
+| 3.0 – 4.9 | `moderate` |
+| 5.0 – 6.9 | `major` |
+| ≥ 7.0 | `critical` |
+
+</details>
+
+<details>
+<summary><strong>Storms (NASA EONET — Wind Speed)</strong></summary>
+
+| Wind Speed | Severity |
+|------------|----------|
+| < 34 kts | `minor` |
+| 34 – 63 kts | `moderate` |
+| 64 – 95 kts | `major` |
+| ≥ 96 kts | `critical` |
+
+</details>
+
+<details>
+<summary><strong>Weather Alerts (NOAA NWS)</strong></summary>
+
+| NWS Level | Severity |
+|-----------|----------|
+| Minor | `minor` |
+| Moderate | `moderate` |
+| Severe | `major` |
+| Extreme | `critical` |
+
+</details>
+
+<details>
+<summary><strong>Fire Detection (NASA FIRMS — FRP)</strong></summary>
+
+| FRP Range | Severity |
+|-----------|----------|
+| < 10 MW | `minor` |
+| 10 – 50 MW | `moderate` |
+| 50 – 100 MW | `major` |
+| ≥ 100 MW | `critical` |
+
+</details>
+
+---
+
+## 🤖 GeoScience AI Assistant
+
+The AI assistant helps developers and geoscientists analyze disaster events using satellite imagery:
+
+- **Event-specific recommendations** — NBR/SWIR for fires, InSAR for earthquakes, NDWI/SAR for floods
+- **Pre-filled satellite data portal links** — USGS EarthExplorer, Copernicus, NASA Worldview, Google Earth Engine
+- **Chat interface** — Ask about satellite bands, spectral indices, processing workflows
+- **Fallback engine** — Built-in knowledge base works even without an API key
+
+| Provider | Setup | Free? |
+|----------|-------|-------|
+| **Kilo Gateway** | [Get Key](https://app.kilo.ai) | ✅ Free tier available |
+| **Built-in Engine** | No key needed | ✅ Always available |
+
+> **💡 Tip:** Without a Kilo API key, the built-in GeoScience knowledge engine provides expert-level guidance on remote sensing workflows. The AI key just adds conversational flexibility.
+
+---
+
+## 📂 Project Structure
 
 ```
 terramind-core/
@@ -14,118 +293,98 @@ terramind-core/
 │   │   ├── usgs.ts          # USGS GeoJSON earthquake feed client
 │   │   ├── nasa.ts          # NASA EONET wildfire & storm client
 │   │   ├── noaa.ts          # NOAA NWS severe weather alert client
-│   │   ├── firms.ts         # NASA FIRMS satellite fire detection client
-│   │   └── gba.ts           # GlobalBuildingAtlas WFS building exposure client
+│   │   ├── firms.ts         # NASA FIRMS satellite fire detection (global)
+│   │   └── gba.ts           # GlobalBuildingAtlas WFS building exposure
 │   ├── pipeline/
-│   │   ├── normalizer.ts    # Data normalization → GlobalDisasterEvent
+│   │   ├── normalizer.ts    # Multi-source → GlobalDisasterEvent schema
 │   │   └── delta.ts         # Change detection / diff engine
 │   └── api/
-│       ├── server.ts         # Express API server
+│       ├── server.ts         # Express API server (560 lines)
 │       └── swagger.ts        # OpenAPI 3.0 specification
 ├── public/
-│   ├── index.html            # Dashboard (dark/light themes)
-│   └── index.css             # Design system
+│   ├── index.html           # Single-page dashboard (dark/light themes)
+│   └── index.css            # Complete design system (1000+ lines)
 ├── tests/
-│   └── clients.test.ts       # Unit tests with mocked Axios
+│   └── clients.test.ts      # Unit tests with mocked HTTP
+├── setup.js                 # 🚀 Interactive setup wizard
+├── .env.example             # Environment template (no secrets)
 ├── package.json
 ├── tsconfig.json
 └── vitest.config.ts
 ```
 
-## Data Sources
+---
 
-| Source | API | Events |
-|--------|-----|--------|
-| **USGS** | [Earthquake GeoJSON Feed](https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php) | All earthquakes (hour/day/week) |
-| **NASA EONET** | [Earth Observatory Natural Event Tracker v3](https://eonet.gsfc.nasa.gov/docs/v3) | Wildfires & severe storms |
-| **NOAA NWS** | [National Weather Service API](https://www.weather.gov/documentation/services-web-api) | Tornado, hurricane, flood, tsunami warnings |
-| **NASA FIRMS** | [Fire Information for Resource Management](https://firms.modaps.eosdis.nasa.gov/api/area/) | Global satellite fire detections (VIIRS, 375m) |
-| **GBA** | [GlobalBuildingAtlas WFS](https://github.com/zhu-xlab/GlobalBuildingAtlas) | Building footprints, heights & exposure analysis |
+## ⚙️ Configuration
 
-## GlobalDisasterEvent Schema
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PORT` | No | `4100` | Server listening port |
+| `HOST` | No | `0.0.0.0` | Server bind address |
+| `FIRMS_MAP_KEY` | No | — | NASA FIRMS API key → enables global fire detection |
+| `KILOCODE_API_KEY` | No | — | Kilo Gateway key → enables AI GeoScience chat |
+| `GBA_WFS_URL` | No | TU Munich endpoint | GlobalBuildingAtlas WFS endpoint (override for custom mirror) |
+| `CACHE_TTL` | No | `60000` | Response cache TTL (ms) |
+| `REFRESH_INTERVAL` | No | `120000` | Auto-refresh interval (ms) |
 
-```typescript
-{
-  id: string;           // Source-prefixed unique ID
-  source: 'usgs' | 'nasa-eonet' | 'noaa-nws' | 'nasa-firms';
-  title: string;        // Human-readable event title
-  severity: 'minor' | 'moderate' | 'major' | 'critical' | 'unknown';
-  coordinates: { longitude: number; latitude: number };
-  timestamp: string;    // ISO 8601
-  eventType: string;    // e.g., 'earthquake', 'wildfires'
-  metadata?: Record<string, unknown>;
-  buildingExposure?: {  // From GlobalBuildingAtlas
-    buildingCount: number;
-    avgHeight: number;
-    maxHeight: number;
-    totalFootprintArea: number;
-    densityClass: 'urban' | 'suburban' | 'rural' | 'uninhabited';
-    queryRadiusKm: number;
-    available: boolean;
-  };
-}
-```
+---
 
-## Quick Start
+## 🛡️ Security
+
+- **Helmet CSP** — Strict Content Security Policy headers
+- **Rate Limiting** — 60 requests/minute per IP
+- **Zod Validation** — Schema validation on all query parameters
+- **Body Limit** — 100KB max request body
+- **API Key Proxy** — All keys stored server-side, AI requests proxied through backend
+- **CORS** — Restricted to configured origins in production
+- **Graceful Shutdown** — Clean SSE disconnection on SIGTERM/SIGINT
+
+---
+
+## 🧪 Testing
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Run tests
-pnpm test
+pnpm test           # Run all tests
+pnpm test:watch     # Watch mode
 ```
 
-## API Endpoints
+---
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/events` | Merged, normalized disaster events |
-| `GET` | `/api/events?source=usgs` | Filter by source |
-| `GET` | `/api/events?severity=critical` | Filter by severity |
-| `GET` | `/api/buildings?lat=35.89&lon=-117.6` | Building exposure around coordinates |
-| `GET` | `/api/buildings?lat=35.89&lon=-117.6&radius=10` | Building exposure with custom radius (km) |
-| `GET` | `/api/stream` | Server-Sent Events (real-time push) |
-| `GET` | `/api/delta` | Change detection since last refresh |
-| `GET` | `/api/docs` | Swagger UI documentation |
-| `GET` | `/api/health` | Health check |
+## 🔗 Tech Stack
 
-## Building Exposure (GlobalBuildingAtlas)
+| Layer | Technology |
+|-------|-----------|
+| Runtime | Node.js 20+ |
+| Language | TypeScript (strict mode) |
+| HTTP | Express.js 4.x |
+| Validation | Zod 3.x |
+| Security | Helmet + express-rate-limit |
+| Frontend | Vanilla HTML/CSS/JS (zero framework deps) |
+| Mapping | Leaflet.js 1.9 + CartoDB basemaps |
+| Charts | Chart.js 4.x |
+| AI | Kilo Gateway (OpenAI-compatible) |
+| Building Data | [GlobalBuildingAtlas](https://github.com/zhu-xlab/GlobalBuildingAtlas) WFS (TU Munich) |
+| Testing | Vitest + axios-mock-adapter |
+| API Docs | Swagger UI (OpenAPI 3.0) |
 
-TerraMind integrates [GlobalBuildingAtlas](https://github.com/zhu-xlab/GlobalBuildingAtlas) to answer: **"What infrastructure is at risk?"**
+---
 
-When a disaster event is detected, the dashboard can query the GBA WFS for building footprints within the affected area:
+## 🗺️ Part of the Masood Sultan AI Ecosystem
 
-- **Building count** — total structures in the disaster zone
-- **Height statistics** — average and maximum building heights
-- **Density classification** — urban, suburban, rural, or uninhabited
-- **Infrastructure risk** — compound assessment based on building count
+| Project | Description |
+|---------|-------------|
+| **[TerraMind Core](https://github.com/masood1996-geo/terramind-core)** | Global disaster intelligence platform *(this repo)* |
+| **[OpenHouse Bot](https://github.com/masood1996-geo/openhouse-bot)** | AI-powered apartment hunting across 50+ portals worldwide |
+| **[AI Scraper](https://github.com/masood1996-geo/ai-scraper)** | Self-learning web scraper — point at any website, get structured data |
 
-> No API key required — GBA WFS is completely free (TU Munich GeoServer).
+---
 
-## Severity Classification
+<div align="center">
 
-### Earthquakes (Richter Scale)
-- **minor**: < 3.0
-- **moderate**: 3.0 – 4.9
-- **major**: 5.0 – 6.9
-- **critical**: ≥ 7.0
+**Built at the intersection of geoscience and AI 🌍**
 
-### Storms (Wind Speed kts)
-- **minor**: < 34 kts
-- **moderate**: 34 – 63 kts
-- **major**: 64 – 95 kts
-- **critical**: ≥ 96 kts
+*If TerraMind helps your research or disaster response work, consider starring the repo ⭐*
 
-### Fire Detection (FRP)
-- **minor**: < 10 MW
-- **moderate**: 10 – 50 MW
-- **major**: 50 – 100 MW
-- **critical**: ≥ 100 MW
+MIT License · Built by [@masood1996-geo](https://github.com/masood1996-geo)
 
-## License
-
-MIT
+</div>
