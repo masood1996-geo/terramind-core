@@ -61,12 +61,13 @@ export class OSMClient {
       }
 
       return {
-        count,
-        totalFootprintSqm: null, // OSM fallback doesn't calculate exact footprint areas 
-        avgHeightMeters: null,   // OSM fallback lacks comprehensive height data
-        maxHeightMeters: null,
+        buildingCount: count,
+        avgHeight: 0,
+        maxHeight: 0,
+        totalFootprintArea: 0,
         densityClass,
-        densityDesc,
+        queryRadiusKm: radiusKm,
+        available: true,
       };
 
     } catch (error: any) {
