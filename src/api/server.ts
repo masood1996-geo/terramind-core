@@ -55,6 +55,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https://*.basemaps.cartocdn.com"],
       connectSrc: ["'self'"],
+      frameAncestors: ["'self'", "https://huggingface.co", "https://*.hf.space"],
     },
   },
   // Allow embedding in HuggingFace Spaces iframe
