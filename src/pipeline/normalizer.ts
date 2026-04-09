@@ -4,6 +4,29 @@ import type { EONETEvent } from '../clients/nasa';
 import type { NOAAAlert } from '../clients/noaa';
 import type { FIRMSDetection } from '../clients/firms';
 
+// ─── Building Exposure Schema (GlobalBuildingAtlas) ─────────────────────────
+
+export const BuildingExposureSchema = z.object({
+  /** Total buildings found in affected area */
+  buildingCount: z.number(),
+  /** Average building height in meters */
+  avgHeight: z.number(),
+  /** Maximum building height in meters */
+  maxHeight: z.number(),
+  /** Estimated total footprint area in m² */
+  totalFootprintArea: z.number(),
+  /** Density classification */
+  densityClass: z.enum(['urban', 'suburban', 'rural', 'uninhabited']),
+  /** Query radius used in km */
+  queryRadiusKm: z.number(),
+  /** Whether the WFS query was successful */
+  available: z.boolean(),
+  /** Error message if query failed */
+  error: z.string().optional(),
+});
+
+export type BuildingExposureData = z.infer<typeof BuildingExposureSchema>;
+
 // ─── Global Disaster Event Schema ───────────────────────────────────────────
 
 export const GlobalDisasterEventSchema = z.object({
@@ -33,6 +56,9 @@ export const GlobalDisasterEventSchema = z.object({
 
   /** Optional additional metadata */
   metadata: z.record(z.unknown()).optional(),
+
+  /** Building exposure data from GlobalBuildingAtlas (populated on demand) */
+  buildingExposure: BuildingExposureSchema.optional(),
 });
 
 export type GlobalDisasterEvent = z.infer<typeof GlobalDisasterEventSchema>;

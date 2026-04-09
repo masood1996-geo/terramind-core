@@ -269,8 +269,9 @@
         TerraMind Core — Real-time global disaster intelligence powered by
         <a href="https://earthquake.usgs.gov" target="_blank" rel="noopener">USGS</a>,
         <a href="https://eonet.gsfc.nasa.gov" target="_blank" rel="noopener">NASA EONET</a>,
-        <a href="https://www.weather.gov" target="_blank" rel="noopener">NOAA/NWS</a> &
-        <a href="https://firms.modaps.eosdis.nasa.gov" target="_blank" rel="noopener">NASA FIRMS</a>
+        <a href="https://www.weather.gov" target="_blank" rel="noopener">NOAA/NWS</a>,
+        <a href="https://firms.modaps.eosdis.nasa.gov" target="_blank" rel="noopener">NASA FIRMS</a> &
+        <a href="https://github.com/zhu-xlab/GlobalBuildingAtlas" target="_blank" rel="noopener">GlobalBuildingAtlas</a>
       </div>
       <div class="footer-links">
         <a href="/api/docs" target="_blank">📄 API Docs</a>
@@ -817,6 +818,7 @@
         <!-- Modal Tabs -->
         <div class="modal-tabs" id="modal-tabs">
           <button class="modal-tab active" data-tab="overview">Overview</button>
+          <button class="modal-tab" data-tab="buildings">🏗️ Buildings</button>
           <button class="modal-tab" data-tab="geoscience">GeoScience</button>
         </div>
 
@@ -843,6 +845,25 @@
             ${isCriticalOrMajor ? `<a href="${newsUrl}" target="_blank" rel="noopener" class="action-link news-link">Search News</a>` : ''}
             ${event.metadata?.url ? `<a href="${event.metadata.url}" target="_blank" rel="noopener" class="action-link source-link">Official Source</a>` : ''}
             <button class="action-link source-link" id="btn-copy-json" data-event-id="${escapeHtml(event.id)}">Copy JSON</button>
+          </div>
+        </div>
+
+        <!-- Tab: Building Exposure -->
+        <div class="modal-tab-content" id="tab-buildings">
+          <div class="geo-section">
+            <h3 class="geo-heading">🏗️ Building Exposure (GlobalBuildingAtlas)</h3>
+            <p class="geo-desc">Infrastructure within <strong>25 km</strong> of event coordinates <strong>${lat.toFixed(4)}°, ${lng.toFixed(4)}°</strong></p>
+            <div id="building-exposure-content" class="building-exposure-panel">
+              <div class="building-loading">
+                <div class="building-spinner"></div>
+                <span>Querying GlobalBuildingAtlas WFS...</span>
+              </div>
+            </div>
+          </div>
+          <div class="geo-section" style="margin-top: 12px">
+            <p class="geo-desc" style="opacity: 0.6; font-size: 0.75rem">
+              📡 Data source: <a href="https://github.com/zhu-xlab/GlobalBuildingAtlas" target="_blank" rel="noopener">GlobalBuildingAtlas</a> (TU Munich) · ODbL + CC BY-NC 4.0
+            </p>
           </div>
         </div>
 
@@ -890,12 +911,19 @@
       `;
 
       // Wire tab switching
+      let buildingsFetched = false;
       $$('#modal-tabs .modal-tab').forEach(tab => {
         tab.addEventListener('click', () => {
           $$('#modal-tabs .modal-tab').forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
           $$('.modal-tab-content').forEach(c => c.classList.remove('active'));
           $(`#tab-${tab.dataset.tab}`).classList.add('active');
+
+          // Lazy-load building exposure when tab is first opened
+          if (tab.dataset.tab === 'buildings' && !buildingsFetched) {
+            buildingsFetched = true;
+            fetchBuildingExposure(lat, lng);
+          }
         });
       });
 
@@ -956,6 +984,110 @@
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/`(.*?)`/g, '<code>$1</code>')
         .replace(/\n/g, '<br>');
+    }
+
+    // ─── Building Exposure (GlobalBuildingAtlas) ─────────────────────────────
+    async function fetchBuildingExposure(lat, lng, radiusKm = 25) {
+      const container = document.getElementById('building-exposure-content');
+      if (!container) return;
+
+      try {
+        const resp = await fetch(`/api/buildings?lat=${lat}&lon=${lng}&radius=${radiusKm}`);
+        const data = await resp.json();
+
+        if (!data.success || !data.exposure) {
+          container.innerHTML = `
+            <div class="building-error">
+              <span class="building-error-icon">⚠️</span>
+              <span>Building data unavailable: ${escapeHtml(data.error || 'Unknown error')}</span>
+            </div>
+          `;
+          return;
+        }
+
+        const exp = data.exposure;
+
+        if (!exp.available) {
+          container.innerHTML = `
+            <div class="building-error">
+              <span class="building-error-icon">📡</span>
+              <span>GBA WFS temporarily unavailable. ${exp.error ? escapeHtml(exp.error) : 'Try again later.'}</span>
+            </div>
+          `;
+          return;
+        }
+
+        // Density class styling
+        const densityColors = {
+          urban: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', icon: '🏙️', label: 'Urban' },
+          suburban: { bg: 'rgba(245, 158, 11, 0.15)', text: '#f59e0b', icon: '🏘️', label: 'Suburban' },
+          rural: { bg: 'rgba(34, 197, 94, 0.15)', text: '#22c55e', icon: '🏡', label: 'Rural' },
+          uninhabited: { bg: 'rgba(107, 114, 128, 0.15)', text: '#6b7280', icon: '🏜️', label: 'Uninhabited' },
+        };
+        const density = densityColors[exp.densityClass] || densityColors.uninhabited;
+
+        const countFormatted = exp.buildingCount.toLocaleString();
+        const areaFormatted = exp.totalFootprintArea > 1000000
+          ? `${(exp.totalFootprintArea / 1000000).toFixed(2)} km²`
+          : `${exp.totalFootprintArea.toLocaleString()} m²`;
+
+        // Risk assessment based on building count + severity
+        let riskLevel = 'Low';
+        let riskColor = '#22c55e';
+        if (exp.buildingCount > 5000) { riskLevel = 'Critical'; riskColor = '#ef4444'; }
+        else if (exp.buildingCount > 1000) { riskLevel = 'High'; riskColor = '#f59e0b'; }
+        else if (exp.buildingCount > 100) { riskLevel = 'Moderate'; riskColor = '#3b82f6'; }
+
+        container.innerHTML = `
+          <div class="building-summary">
+            <div class="building-stat-grid">
+              <div class="building-stat-card building-stat-primary">
+                <div class="building-stat-icon">${density.icon}</div>
+                <div class="building-stat-value" style="color: ${density.text}">${countFormatted}</div>
+                <div class="building-stat-label">Buildings Found</div>
+                <div class="building-density-badge" style="background: ${density.bg}; color: ${density.text}">
+                  ${density.label} Area
+                </div>
+              </div>
+              <div class="building-stat-card">
+                <div class="building-stat-icon">📏</div>
+                <div class="building-stat-value">${exp.avgHeight > 0 ? exp.avgHeight + ' m' : '—'}</div>
+                <div class="building-stat-label">Avg. Height</div>
+              </div>
+              <div class="building-stat-card">
+                <div class="building-stat-icon">🏢</div>
+                <div class="building-stat-value">${exp.maxHeight > 0 ? exp.maxHeight + ' m' : '—'}</div>
+                <div class="building-stat-label">Max Height</div>
+              </div>
+              <div class="building-stat-card">
+                <div class="building-stat-icon">📐</div>
+                <div class="building-stat-value">${areaFormatted}</div>
+                <div class="building-stat-label">Total Footprint</div>
+              </div>
+            </div>
+            <div class="building-risk-bar">
+              <div class="building-risk-label">Infrastructure Risk</div>
+              <div class="building-risk-indicator" style="color: ${riskColor}">
+                <span class="building-risk-dot" style="background: ${riskColor}"></span>
+                ${riskLevel}
+              </div>
+            </div>
+            ${exp.buildingCount >= 500 ? `
+              <div class="building-note">
+                <span>⚠️</span> Feature limit reached — actual building count may be higher than ${countFormatted}.
+                ${exp.buildingCount > 500 ? `Server reports ~${exp.buildingCount.toLocaleString()} total features.` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } catch (err) {
+        container.innerHTML = `
+          <div class="building-error">
+            <span class="building-error-icon">❌</span>
+            <span>Failed to query building data: ${escapeHtml(err.message)}</span>
+          </div>
+        `;
+      }
     }
 
     function getSatelliteLinks(lat, lng, timestamp) {

@@ -26,6 +26,7 @@ import { USGSClient } from '../clients/usgs';
 import { NASAClient } from '../clients/nasa';
 import { NOAAClient } from '../clients/noaa';
 import { FIRMSClient } from '../clients/firms';
+import { GBAClient, BuildingExposure } from '../clients/gba';
 import { normalizeAll, GlobalDisasterEvent } from '../pipeline/normalizer';
 import { computeDelta, DeltaResult } from '../pipeline/delta';
 import { openApiSpec } from './swagger';
@@ -93,6 +94,7 @@ const usgsClient = new USGSClient();
 const nasaClient = new NASAClient();
 const noaaClient = new NOAAClient();
 const firmsClient = new FIRMSClient();
+const gbaClient = new GBAClient();
 
 // ─── SSE (Server-Sent Events) ───────────────────────────────────────────────
 
@@ -399,6 +401,86 @@ app.get('/api/delta', (_req: Request, res: Response) => {
   res.json({ success: true, delta: lastDelta });
 });
 
+// ─── Building Exposure (GlobalBuildingAtlas) ─────────────────────────────────
+
+/**
+ * GET /api/buildings
+ *
+ * Queries the GlobalBuildingAtlas WFS for building footprints around
+ * a coordinate pair. Returns building exposure summary (count, heights,
+ * density classification).
+ *
+ * Query params:
+ *   lat    — Latitude (required)
+ *   lon    — Longitude (required)
+ *   radius — Search radius in km (default: 25, max: 50)
+ */
+const BuildingsQuerySchema = z.object({
+  lat: z.string().transform(Number).pipe(z.number().min(-90).max(90)),
+  lon: z.string().transform(Number).pipe(z.number().min(-180).max(180)),
+  radius: z.string().transform(Number).pipe(z.number().min(1).max(50)).optional(),
+});
+
+// Building exposure cache (keyed by lat-lon-radius, 5min TTL)
+const buildingCache = new Map<string, { data: BuildingExposure; expiry: number }>();
+const BUILDING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+app.get('/api/buildings', async (req: Request, res: Response) => {
+  try {
+    const parsed = BuildingsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid query parameters. Required: ?lat=NUMBER&lon=NUMBER[&radius=NUMBER]',
+        details: parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`),
+      });
+    }
+
+    const { lat, lon, radius } = parsed.data;
+    const radiusKm = radius ?? 25;
+    const cacheKey = `${lat.toFixed(3)}:${lon.toFixed(3)}:${radiusKm}`;
+
+    // Check cache
+    const cached = buildingCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json({
+        success: true,
+        source: 'GlobalBuildingAtlas',
+        query: { lat, lon, radiusKm },
+        exposure: cached.data,
+      });
+    }
+
+    const exposure = await gbaClient.getBuildingExposure(lat, lon, radiusKm);
+
+    // Cache result
+    buildingCache.set(cacheKey, { data: exposure, expiry: Date.now() + BUILDING_CACHE_TTL });
+
+    // Periodic cache cleanup (keep under 500 entries)
+    if (buildingCache.size > 500) {
+      const now = Date.now();
+      for (const [key, val] of buildingCache) {
+        if (now > val.expiry) buildingCache.delete(key);
+      }
+    }
+
+    res.setHeader('X-Cache', 'MISS');
+    res.json({
+      success: true,
+      source: 'GlobalBuildingAtlas',
+      query: { lat, lon, radiusKm },
+      exposure,
+    });
+  } catch (error: any) {
+    console.error('[TerraMind] GBA buildings query failed:', error.message);
+    res.status(500).json({
+      success: false,
+      error: IS_PRODUCTION ? 'Building data unavailable' : error.message,
+    });
+  }
+});
+
 // ─── GeoScience AI Assistant ──────────────────────────────────────────────────
 
 app.post('/api/ai/chat', async (req: Request, res: Response) => {
@@ -409,7 +491,7 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
 
   const apiKey = process.env.KILOCODE_API_KEY;
 
-  const systemPrompt = `You are TerraMind GeoScience Assistant — an expert in remote sensing, satellite imagery, and geospatial data analysis. You help developers and geoscientists understand how to use satellite data to analyze disaster events.
+  const systemPrompt = `You are TerraMind GeoScience Assistant — an expert in remote sensing, satellite imagery, geospatial data analysis, and urban exposure assessment. You help developers and geoscientists understand how to use satellite data and building infrastructure data to analyze disaster events.
 
 Your expertise includes:
 - Landsat 8/9 bands and indices (NDVI, NBR, NDWI, NDSI, etc.)
@@ -418,12 +500,17 @@ Your expertise includes:
 - SAR/InSAR for surface deformation (Sentinel-1)
 - Google Earth Engine, USGS EarthExplorer, Copernicus Open Access Hub
 - Change detection methodologies (pre/post event analysis)
+- Building exposure analysis using GlobalBuildingAtlas (GBA) data
+- Urban density classification and infrastructure impact assessment
+
+TerraMind integrates the GlobalBuildingAtlas (GBA) dataset which provides global building footprints, heights, and LoD1 3D models. When users ask about building impact, exposure, or infrastructure, reference the GBA data available through the /api/buildings endpoint.
 
 When answering:
 1. Be specific about which satellite, which bands, which indices
 2. Provide direct links to data portals when possible
 3. Suggest exact processing steps
-4. Keep answers concise but actionable
+4. When relevant, mention building exposure data from GBA to contextualize disaster impact
+5. Keep answers concise but actionable
 
 ${eventContext ? `Current event context:\n${eventContext}` : ''}`;
 
@@ -519,20 +606,22 @@ app.get('*', (_req: Request, res: Response) => {
 
 const server = app.listen(PORT, HOST, () => {
   console.log('');
-  console.log('  ╔══════════════════════════════════════════════════╗');
-  console.log('  ║                                                  ║');
-  console.log('  ║   🌍  TerraMind Core v3.0.0                     ║');
-  console.log('  ║   Global Disaster Intelligence Platform          ║');
-  console.log('  ║                                                  ║');
-  console.log(`  ║   → Dashboard: http://localhost:${PORT}             ║`);
-  console.log(`  ║   → API:       http://localhost:${PORT}/api/events  ║`);
-  console.log(`  ║   → SSE:       http://localhost:${PORT}/api/stream  ║`);
-  console.log(`  ║   → Docs:      http://localhost:${PORT}/api/docs    ║`);
-  console.log(`  ║   → Health:    http://localhost:${PORT}/api/health  ║`);
-  console.log('  ║                                                  ║');
-  console.log(`  ║   Cache: ${CACHE_TTL_MS / 1000}s | Rate: 60/min | FIRMS: ${firmsClient.isConfigured ? '✅' : '❌'}  ║`);
-  console.log('  ║                                                  ║');
-  console.log('  ╚══════════════════════════════════════════════════╝');
+  console.log('  ╔══════════════════════════════════════════════════════╗');
+  console.log('  ║                                                      ║');
+  console.log('  ║   🌍  TerraMind Core v4.0.0                         ║');
+  console.log('  ║   Global Disaster Intelligence Platform              ║');
+  console.log('  ║                                                      ║');
+  console.log(`  ║   → Dashboard:  http://localhost:${PORT}                ║`);
+  console.log(`  ║   → API:        http://localhost:${PORT}/api/events     ║`);
+  console.log(`  ║   → Buildings:  http://localhost:${PORT}/api/buildings  ║`);
+  console.log(`  ║   → SSE:        http://localhost:${PORT}/api/stream     ║`);
+  console.log(`  ║   → Docs:       http://localhost:${PORT}/api/docs       ║`);
+  console.log(`  ║   → Health:     http://localhost:${PORT}/api/health     ║`);
+  console.log('  ║                                                      ║');
+  console.log(`  ║   Cache: ${CACHE_TTL_MS / 1000}s | Rate: 60/min | FIRMS: ${firmsClient.isConfigured ? '✅' : '❌'}   ║`);
+  console.log('  ║   GBA: ✅ GlobalBuildingAtlas WFS                    ║');
+  console.log('  ║                                                      ║');
+  console.log('  ╚══════════════════════════════════════════════════════╝');
   console.log('');
 });
 

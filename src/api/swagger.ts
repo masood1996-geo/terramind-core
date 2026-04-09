@@ -6,8 +6,8 @@ export const openApiSpec = {
   info: {
     title: 'TerraMind Core API',
     description:
-      'Global disaster event aggregation platform. Normalizes USGS Earthquake, NASA EONET, NOAA NWS, and NASA FIRMS data into a unified schema.',
-    version: '3.0.0',
+      'Global disaster event aggregation platform. Normalizes USGS Earthquake, NASA EONET, NOAA NWS, NASA FIRMS, and GlobalBuildingAtlas data into a unified schema with building exposure analysis.',
+    version: '4.0.0',
     contact: {
       name: 'TerraMind Core',
       url: 'https://github.com/terramind-core',
@@ -103,6 +103,70 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/buildings': {
+      get: {
+        operationId: 'getBuildingExposure',
+        summary: 'Get building exposure around coordinates',
+        description:
+          'Queries GlobalBuildingAtlas WFS for building footprints within a radius of the given coordinates. Returns a building exposure summary including count, average height, density classification, and total footprint area.',
+        tags: ['Buildings'],
+        parameters: [
+          {
+            name: 'lat',
+            in: 'query',
+            required: true,
+            schema: { type: 'number', minimum: -90, maximum: 90 },
+            description: 'Latitude (WGS84)',
+            example: 35.89,
+          },
+          {
+            name: 'lon',
+            in: 'query',
+            required: true,
+            schema: { type: 'number', minimum: -180, maximum: 180 },
+            description: 'Longitude (WGS84)',
+            example: -117.60,
+          },
+          {
+            name: 'radius',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', minimum: 1, maximum: 50, default: 25 },
+            description: 'Search radius in kilometers (default: 25, max: 50)',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Building exposure summary.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    source: { type: 'string', example: 'GlobalBuildingAtlas' },
+                    query: {
+                      type: 'object',
+                      properties: {
+                        lat: { type: 'number' },
+                        lon: { type: 'number' },
+                        radiusKm: { type: 'number' },
+                      },
+                    },
+                    exposure: {
+                      $ref: '#/components/schemas/BuildingExposure',
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Invalid query parameters.',
+          },
+        },
+      },
+    },
     '/api/health': {
       get: {
         operationId: 'healthCheck',
@@ -119,7 +183,7 @@ export const openApiSpec = {
                   properties: {
                     status: { type: 'string', example: 'ok' },
                     uptime: { type: 'number', example: 12345.67 },
-                    version: { type: 'string', example: '1.0.0' },
+                    version: { type: 'string', example: '4.0.0' },
                   },
                 },
               },
@@ -150,7 +214,7 @@ export const openApiSpec = {
           },
           source: {
             type: 'string',
-            enum: ['usgs', 'nasa-eonet'],
+            enum: ['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms'],
             description: 'Data source identifier',
           },
           title: {
@@ -186,6 +250,53 @@ export const openApiSpec = {
             description: 'Optional additional metadata',
             additionalProperties: true,
           },
+          buildingExposure: {
+            $ref: '#/components/schemas/BuildingExposure',
+          },
+        },
+      },
+      BuildingExposure: {
+        type: 'object',
+        description: 'Building infrastructure exposure summary from GlobalBuildingAtlas',
+        properties: {
+          buildingCount: {
+            type: 'integer',
+            description: 'Total buildings in the affected area',
+            example: 12847,
+          },
+          avgHeight: {
+            type: 'number',
+            description: 'Average building height in meters',
+            example: 8.2,
+          },
+          maxHeight: {
+            type: 'number',
+            description: 'Maximum building height in meters',
+            example: 45.3,
+          },
+          totalFootprintArea: {
+            type: 'number',
+            description: 'Total building footprint area in square meters',
+            example: 125000,
+          },
+          densityClass: {
+            type: 'string',
+            enum: ['urban', 'suburban', 'rural', 'uninhabited'],
+            description: 'Urban density classification',
+          },
+          queryRadiusKm: {
+            type: 'number',
+            description: 'Search radius used in kilometers',
+            example: 25,
+          },
+          available: {
+            type: 'boolean',
+            description: 'Whether building data was successfully retrieved',
+          },
+          error: {
+            type: 'string',
+            description: 'Error message if data retrieval failed',
+          },
         },
       },
     },
@@ -194,6 +305,10 @@ export const openApiSpec = {
     {
       name: 'Events',
       description: 'Global disaster event endpoints',
+    },
+    {
+      name: 'Buildings',
+      description: 'GlobalBuildingAtlas building exposure endpoints',
     },
     {
       name: 'System',
