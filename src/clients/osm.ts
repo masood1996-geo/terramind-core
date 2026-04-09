@@ -41,9 +41,9 @@ export class OSMClient {
       const data = JSON.parse(rawText);
 
       // Overpass 'out count' format looks like:
-      // { "elements": [{ "type": "count", "id": 0, "tags": { "ways": 534, "relations": 2, "nodes": 0 } }] }
+      // { "elements": [{ "type": "count", "id": 0, "tags": { "ways": "534", "relations": "2", "nodes": "0" } }] }
       const countData = data.elements?.[0]?.tags;
-      const count = (countData?.ways || 0) + (countData?.relations || 0) + (countData?.nodes || 0);
+      const count = Number(countData?.ways || 0) + Number(countData?.relations || 0) + Number(countData?.nodes || 0);
 
       // Infer density class from count
       let densityClass: 'uninhabited' | 'rural' | 'suburban' | 'urban' = 'uninhabited';

@@ -1083,7 +1083,7 @@
                 ${riskLevel}
               </div>
             </div>
-            ${exp.buildingCount >= 500 ? `
+            ${exp.buildingCount >= 500 && data.source !== 'OpenStreetMap' ? `
               <div class="building-note">
                 <span>⚠️</span> Feature limit reached — actual building count may be higher than ${countFormatted}.
                 ${exp.buildingCount > 500 ? `Server reports ~${exp.buildingCount.toLocaleString()} total features.` : ''}
