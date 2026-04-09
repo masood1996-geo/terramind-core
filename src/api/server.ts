@@ -467,14 +467,27 @@ app.get('/api/buildings', async (req: Request, res: Response) => {
     let fallbackSource = 'GlobalBuildingAtlas';
     try {
       exposure = await gbaClient.getBuildingExposure(lat, lon, radiusKm);
-      // GBAClient catches errors internally and returns available = false
       if (!exposure.available) {
         throw new Error(exposure.error || 'GBA returned available=false');
       }
     } catch (gbaError: any) {
       console.warn(`[TerraMind] GBA failed (${gbaError.message}), falling back to OpenStreetMap...`);
       fallbackSource = 'OpenStreetMap';
-      exposure = await osmClient.getBuildingExposureFallback(lat, lon, radiusKm);
+      try {
+        exposure = await osmClient.getBuildingExposureFallback(lat, lon, radiusKm);
+      } catch (osmError: any) {
+        console.warn(`[TerraMind] OSM Fallback also failed: ${osmError.message}`);
+        exposure = {
+          buildingCount: 0,
+          avgHeight: 0,
+          maxHeight: 0,
+          totalFootprintArea: 0,
+          densityClass: 'uninhabited',
+          queryRadiusKm: radiusKm,
+          available: false,
+          error: 'Building data unavailable from all sources.',
+        };
+      }
     }
 
     // Cache result

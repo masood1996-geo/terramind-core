@@ -110,7 +110,8 @@ export class GBAClient {
       typeName: 'GBA:buildings',
       outputFormat: 'application/json',
       srsName: 'EPSG:4326',
-      bbox: `${bbox.minLat},${bbox.minLon},${bbox.maxLat},${bbox.maxLon},EPSG:4326`,
+      // Many GeoServer instances expect minLon,minLat (x,y) regardless of strict WFS 2.0.0 SRS rules.
+      bbox: `${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat},EPSG:4326`,
       count: String(GBAClient.MAX_FEATURES),
     };
 
