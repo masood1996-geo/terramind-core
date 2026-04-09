@@ -377,7 +377,7 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   res.status(overall === 'ok' ? 200 : 503).json({
     status: overall,
     uptime: process.uptime(),
-    version: '3.0.0',
+    version: '4.1.0',
     timestamp: new Date().toISOString(),
     cache: {
       active: responseCache !== null && Date.now() < (responseCache?.expiry ?? 0),
@@ -616,7 +616,7 @@ const server = app.listen(PORT, HOST, () => {
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════╗');
   console.log('  ║                                                      ║');
-  console.log('  ║   🌍  TerraMind Core v4.0.0                         ║');
+  console.log('  ║   🌍  TerraMind Core v4.1.0                         ║');
   console.log('  ║   Global Disaster Intelligence Platform              ║');
   console.log('  ║                                                      ║');
   console.log(`  ║   → Dashboard:  http://localhost:${PORT}                ║`);
