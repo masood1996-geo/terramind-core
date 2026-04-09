@@ -27,6 +27,7 @@ import { NASAClient } from '../clients/nasa';
 import { NOAAClient } from '../clients/noaa';
 import { FIRMSClient } from '../clients/firms';
 import { GBAClient, BuildingExposure } from '../clients/gba';
+import { OSMClient } from '../clients/osm';
 import { normalizeAll, GlobalDisasterEvent } from '../pipeline/normalizer';
 import { computeDelta, DeltaResult } from '../pipeline/delta';
 import { openApiSpec } from './swagger';
@@ -103,6 +104,7 @@ const nasaClient = new NASAClient();
 const noaaClient = new NOAAClient();
 const firmsClient = new FIRMSClient();
 const gbaClient = new GBAClient();
+const osmClient = new OSMClient();
 
 // ─── SSE (Server-Sent Events) ───────────────────────────────────────────────
 
@@ -460,7 +462,16 @@ app.get('/api/buildings', async (req: Request, res: Response) => {
       });
     }
 
-    const exposure = await gbaClient.getBuildingExposure(lat, lon, radiusKm);
+    // Try GBA first
+    let exposure;
+    let fallbackSource = 'GlobalBuildingAtlas';
+    try {
+      exposure = await gbaClient.getBuildingExposure(lat, lon, radiusKm);
+    } catch (gbaError: any) {
+      console.warn(`[TerraMind] GBA failed (${gbaError.message}), falling back to OpenStreetMap...`);
+      fallbackSource = 'OpenStreetMap';
+      exposure = await osmClient.getBuildingExposureFallback(lat, lon, radiusKm);
+    }
 
     // Cache result
     buildingCache.set(cacheKey, { data: exposure, expiry: Date.now() + BUILDING_CACHE_TTL });
@@ -476,15 +487,15 @@ app.get('/api/buildings', async (req: Request, res: Response) => {
     res.setHeader('X-Cache', 'MISS');
     res.json({
       success: true,
-      source: 'GlobalBuildingAtlas',
+      source: fallbackSource,
       query: { lat, lon, radiusKm },
       exposure,
     });
   } catch (error: any) {
-    console.error('[TerraMind] GBA buildings query failed:', error.message);
+    console.error('[TerraMind] Buildings query failed entirely:', error.message);
     res.status(500).json({
       success: false,
-      error: IS_PRODUCTION ? 'Building data unavailable' : error.message,
+      error: IS_PRODUCTION ? 'Building data unavailable from all sources' : error.message,
     });
   }
 });

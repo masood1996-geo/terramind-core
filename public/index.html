@@ -851,18 +851,18 @@
         <!-- Tab: Building Exposure -->
         <div class="modal-tab-content" id="tab-buildings">
           <div class="geo-section">
-            <h3 class="geo-heading">🏗️ Building Exposure (GlobalBuildingAtlas)</h3>
+            <h3 class="geo-heading">🏗️ Building Exposure</h3>
             <p class="geo-desc">Infrastructure within <strong>25 km</strong> of event coordinates <strong>${lat.toFixed(4)}°, ${lng.toFixed(4)}°</strong></p>
             <div id="building-exposure-content" class="building-exposure-panel">
               <div class="building-loading">
                 <div class="building-spinner"></div>
-                <span>Querying GlobalBuildingAtlas WFS...</span>
+                <span>Querying infrastructure data...</span>
               </div>
             </div>
           </div>
-          <div class="geo-section" style="margin-top: 12px">
+          <div class="geo-section" id="building-source-footer" style="margin-top: 12px; display: none;">
             <p class="geo-desc" style="opacity: 0.6; font-size: 0.75rem">
-              📡 Data source: <a href="https://github.com/zhu-xlab/GlobalBuildingAtlas" target="_blank" rel="noopener">GlobalBuildingAtlas</a> (TU Munich) · ODbL + CC BY-NC 4.0
+              📡 Data source: <span id="building-data-source-name"></span>
             </p>
           </div>
         </div>
@@ -1037,6 +1037,17 @@
         if (exp.buildingCount > 5000) { riskLevel = 'Critical'; riskColor = '#ef4444'; }
         else if (exp.buildingCount > 1000) { riskLevel = 'High'; riskColor = '#f59e0b'; }
         else if (exp.buildingCount > 100) { riskLevel = 'Moderate'; riskColor = '#3b82f6'; }
+
+        const sourceNameEl = document.getElementById('building-data-source-name');
+        const sourceFooter = document.getElementById('building-source-footer');
+        if (sourceNameEl && sourceFooter) {
+          if (data.source === 'OpenStreetMap') {
+            sourceNameEl.innerHTML = '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · ODbL';
+          } else {
+            sourceNameEl.innerHTML = '<a href="https://github.com/zhu-xlab/GlobalBuildingAtlas" target="_blank" rel="noopener">GlobalBuildingAtlas</a> (TU Munich) · CC BY-NC 4.0';
+          }
+          sourceFooter.style.display = 'block';
+        }
 
         container.innerHTML = `
           <div class="building-summary">
