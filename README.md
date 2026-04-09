@@ -156,6 +156,10 @@ pnpm dev                # → http://localhost:4100
 | 🟢 **NOAA NWS** | [National Weather Service API](https://www.weather.gov/documentation/services-web-api) | Tornado, hurricane, flood, tsunami warnings | 🇺🇸 USA | No |
 | 🟡 **NASA FIRMS** | [Fire Information for Resource Management](https://firms.modaps.eosdis.nasa.gov/api/area/) | Satellite fire detections (VIIRS, 375m) | 🌍 Global (11 regions) | Free key |
 | 🟢 **GBA** | [GlobalBuildingAtlas WFS](https://github.com/zhu-xlab/GlobalBuildingAtlas) | Building footprints, heights & exposure | 🌍 Global | No |
+| 🟢 **OSM (Fallback)** | [OpenStreetMap Overpass](https://overpass-api.de/) | Fallback building footprint indexing | 🌍 Global | No |
+
+> **🙌 Special Thanks to GlobalBuildingAtlas:** The building exposure analytics in TerraMind natively rely on the incredible open-source dataset provided by the [zhu-xlab/GlobalBuildingAtlas](https://github.com/zhu-xlab/GlobalBuildingAtlas) repository. 
+> *Note: Because TerraMind integrates with their external academic WFS server for volumetric data, there may be times when detailed building analytics (like average heights) are temporarily unavailable due to upstream server load. In these events, TerraMind automatically falls back to OpenStreetMap footprint counts to ensure resilient reporting.*
 
 ---
 
