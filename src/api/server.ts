@@ -486,7 +486,7 @@ app.get('/api/buildings', async (req: Request, res: Response) => {
           queryRadiusKm: radiusKm,
           available: false,
           error: 'Building data unavailable from all sources.',
-        };
+        } as BuildingExposure;
       }
     }
 
