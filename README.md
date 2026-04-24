@@ -107,42 +107,33 @@ pnpm dev                # → http://localhost:4100
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Client (Browser)                              │
-│  Leaflet Map · Event Cards · Charts · AI Chat · Theme Switcher       │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │ HTTP / SSE
-                             ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                     Express.js API Server                            │
-│                                                                      │
-│  /api/events ─── Merged + filtered disaster events                   │
-│  /api/buildings  Building exposure (GlobalBuildingAtlas WFS)          │
-│  /api/stream ─── Server-Sent Events (real-time push)                 │
-│  /api/health ─── Upstream status + cache metrics                     │
-│  /api/delta ──── Change detection (new/removed/escalated)            │
-│  /api/ai/chat ── GeoScience AI proxy (Kilo Gateway → fallback)      │
-│  /api/docs ───── Swagger UI (OpenAPI 3.0)                            │
-│                                                                      │
-│  Helmet CSP · Rate Limit · Zod Validation · Response Cache           │
-└────┬───────────┬───────────┬───────────┬────────────────────────────┘
-     │           │           │           │
-     ▼           ▼           ▼           ▼
-┌─────────┐┌─────────┐┌─────────┐┌──────────────┐┌──────────────┐
-│  USGS   ││  NASA   ││  NOAA   ││  NASA FIRMS  ││     GBA      │
-│Earthquake││ EONET   ││  NWS    ││  Fire Detect ││ Building     │
-│GeoJSON  ││ v3 API  ││Alerts   ││  VIIRS/375m  ││ Atlas WFS    │
-│  Feed   ││         ││  API    ││  CSV → JSON  ││ (on-demand)  │
-└────┬────┘└────┬────┘└────┬────┘└──────┬───────┘└──────┬───────┘
-     │          │          │            │               │
-     └──────────┴──────────┴────────────┴───────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Normalization Pipeline                             │
-│  Multi-format parsing → Severity classification → Coordinate         │
-│  extraction → GlobalDisasterEvent schema → Delta engine              │
-└─────────────────────────────────────────────────────────────────────┘
+Client dashboard
+  Leaflet map | event cards | charts | AI chat | theme switcher
+        |
+        | HTTP / SSE
+        v
+Express API server
+  /api/events     merged + filtered disaster events
+  /api/buildings  building exposure via GBA, with OSM fallback
+  /api/stream     real-time Server-Sent Events
+  /api/health     upstream status + cache metrics
+  /api/delta      new/removed/escalated event detection
+  /api/ai/chat    GeoScience AI proxy with local fallback
+  /api/docs       OpenAPI 3.0 Swagger UI
+        |
+        v
+Source clients
+  USGS Earthquake GeoJSON
+  NASA EONET wildfire + storm events
+  NOAA NWS severe weather alerts
+  NASA FIRMS VIIRS fire detections
+  GDACS global multi-hazard alerts
+  GlobalBuildingAtlas WFS + OpenStreetMap exposure fallback
+        |
+        v
+Normalization pipeline
+  Multi-format parsing -> severity classification -> coordinate extraction
+  -> GlobalDisasterEvent schema -> response cache -> delta engine
 ```
 
 ---
