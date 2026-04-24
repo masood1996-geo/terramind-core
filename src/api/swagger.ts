@@ -6,8 +6,8 @@ export const openApiSpec = {
   info: {
     title: 'TerraMind Core API',
     description:
-      'Global disaster event aggregation platform. Normalizes USGS Earthquake, NASA EONET, NOAA NWS, NASA FIRMS, and GlobalBuildingAtlas data into a unified schema with building exposure analysis.',
-    version: '4.0.0',
+      'Global disaster event aggregation platform. Normalizes USGS Earthquake, NASA EONET, NOAA NWS, NASA FIRMS, GDACS, and GlobalBuildingAtlas data into a unified schema with building exposure analysis.',
+    version: '4.2.0',
     contact: {
       name: 'TerraMind Core',
       url: 'https://github.com/terramind-core',
@@ -35,7 +35,7 @@ export const openApiSpec = {
         operationId: 'getDisasterEvents',
         summary: 'Get global disaster events',
         description:
-          'Returns a merged, normalized array of recent earthquake (USGS) and natural disaster (NASA EONET) events, sorted by timestamp descending.',
+          'Returns a merged, normalized array of recent disaster events from USGS, NASA EONET, NOAA NWS, NASA FIRMS, and GDACS, sorted by timestamp descending.',
         tags: ['Events'],
         parameters: [
           {
@@ -44,7 +44,7 @@ export const openApiSpec = {
             required: false,
             schema: {
               type: 'string',
-              enum: ['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms'],
+              enum: ['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms', 'gdacs'],
             },
             description:
               'Filter events by data source. Omit to return all sources.',
@@ -214,7 +214,7 @@ export const openApiSpec = {
           },
           source: {
             type: 'string',
-            enum: ['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms'],
+            enum: ['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms', 'gdacs'],
             description: 'Data source identifier',
           },
           title: {

@@ -26,6 +26,7 @@ import { USGSClient } from '../clients/usgs';
 import { NASAClient } from '../clients/nasa';
 import { NOAAClient } from '../clients/noaa';
 import { FIRMSClient } from '../clients/firms';
+import { GDACSClient } from '../clients/gdacs';
 import { GBAClient, BuildingExposure } from '../clients/gba';
 import { OSMClient } from '../clients/osm';
 import { normalizeAll, GlobalDisasterEvent } from '../pipeline/normalizer';
@@ -103,6 +104,7 @@ const usgsClient = new USGSClient();
 const nasaClient = new NASAClient();
 const noaaClient = new NOAAClient();
 const firmsClient = new FIRMSClient();
+const gdacsClient = new GDACSClient();
 const gbaClient = new GBAClient();
 const osmClient = new OSMClient();
 
@@ -157,7 +159,7 @@ function getCacheKey(source?: string, severity?: string): string {
 // ─── Query Validation ───────────────────────────────────────────────────────
 
 const EventsQuerySchema = z.object({
-  source: z.enum(['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms']).optional(),
+  source: z.enum(['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms', 'gdacs']).optional(),
   severity: z.enum(['minor', 'moderate', 'major', 'critical', 'unknown']).optional(),
   timeRange: z.enum(['hour', 'day', 'week']).optional(),
   nocache: z.string().optional(),
@@ -173,10 +175,11 @@ async function fetchAllEvents(
   health: SourceHealth[];
 }> {
   const health: SourceHealth[] = [];
+  const shouldFetch = (source: string) => !sourceFilter || sourceFilter === source;
 
   // USGS
   let usgsData: any[] = [];
-  if (sourceFilter !== 'nasa-eonet' && sourceFilter !== 'noaa-nws' && sourceFilter !== 'nasa-firms') {
+  if (shouldFetch('usgs')) {
     const t0 = Date.now();
     try {
       usgsData = await usgsClient.fetchRecentEarthquakes(timeRange as any);
@@ -189,7 +192,7 @@ async function fetchAllEvents(
 
   // NASA EONET
   let nasaData: any[] = [];
-  if (sourceFilter !== 'usgs' && sourceFilter !== 'noaa-nws' && sourceFilter !== 'nasa-firms') {
+  if (shouldFetch('nasa-eonet')) {
     const t0 = Date.now();
     try {
       nasaData = await nasaClient.fetchDisasterEvents();
@@ -202,7 +205,7 @@ async function fetchAllEvents(
 
   // NOAA NWS
   let noaaData: any[] = [];
-  if (sourceFilter !== 'usgs' && sourceFilter !== 'nasa-eonet' && sourceFilter !== 'nasa-firms') {
+  if (shouldFetch('noaa-nws')) {
     const t0 = Date.now();
     try {
       noaaData = await noaaClient.fetchActiveAlerts();
@@ -215,7 +218,7 @@ async function fetchAllEvents(
 
   // NASA FIRMS
   let firmsData: any[] = [];
-  if (sourceFilter !== 'usgs' && sourceFilter !== 'nasa-eonet' && sourceFilter !== 'noaa-nws') {
+  if (shouldFetch('nasa-firms')) {
     if (firmsClient.isConfigured) {
       const t0 = Date.now();
       try {
@@ -231,7 +234,20 @@ async function fetchAllEvents(
     }
   }
 
-  const events = normalizeAll(usgsData, nasaData, noaaData, firmsData);
+  // GDACS
+  let gdacsData: any[] = [];
+  if (shouldFetch('gdacs')) {
+    const t0 = Date.now();
+    try {
+      gdacsData = await gdacsClient.fetchActiveAlerts();
+      health.push({ name: 'GDACS', status: 'ok', count: gdacsData.length, responseTimeMs: Date.now() - t0 });
+    } catch (err: any) {
+      health.push({ name: 'GDACS', status: 'error', count: 0, responseTimeMs: Date.now() - t0, error: err.message });
+      console.error('[TerraMind] GDACS fetch failed:', err.message);
+    }
+  }
+
+  const events = normalizeAll(usgsData, nasaData, noaaData, firmsData, gdacsData);
   return { events, health };
 }
 
@@ -241,7 +257,7 @@ async function fetchAllEvents(
  * GET /api/events
  *
  * Returns merged, normalized disaster events from all sources.
- * Supports optional query filters: ?source=usgs|nasa-eonet|noaa-nws|nasa-firms&severity=...
+ * Supports optional query filters: ?source=usgs|nasa-eonet|noaa-nws|nasa-firms|gdacs&severity=...
  * Add ?nocache=1 to bypass the response cache.
  */
 app.get('/api/events', async (req: Request, res: Response) => {
@@ -298,6 +314,7 @@ app.get('/api/events', async (req: Request, res: Response) => {
         nasa: { status: health.find(h => h.name === 'NASA EONET')?.status ?? 'disabled', count: health.find(h => h.name === 'NASA EONET')?.count ?? 0 },
         noaa: { status: health.find(h => h.name === 'NOAA NWS')?.status ?? 'disabled', count: health.find(h => h.name === 'NOAA NWS')?.count ?? 0 },
         firms: { status: health.find(h => h.name === 'NASA FIRMS')?.status ?? 'disabled', count: health.find(h => h.name === 'NASA FIRMS')?.count ?? 0 },
+        gdacs: { status: health.find(h => h.name === 'GDACS')?.status ?? 'disabled', count: health.find(h => h.name === 'GDACS')?.count ?? 0 },
       },
       sweep: {
         durationMs: sweepDuration,
@@ -379,7 +396,7 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   res.status(overall === 'ok' ? 200 : 503).json({
     status: overall,
     uptime: process.uptime(),
-    version: '4.1.0',
+    version: '4.2.0',
     timestamp: new Date().toISOString(),
     cache: {
       active: responseCache !== null && Date.now() < (responseCache?.expiry ?? 0),
@@ -644,7 +661,7 @@ const server = app.listen(PORT, HOST, () => {
   console.log('');
   console.log('  ╔══════════════════════════════════════════════════════╗');
   console.log('  ║                                                      ║');
-  console.log('  ║   🌍  TerraMind Core v4.1.0                         ║');
+  console.log('  ║   🌍  TerraMind Core v4.2.0                         ║');
   console.log('  ║   Global Disaster Intelligence Platform              ║');
   console.log('  ║                                                      ║');
   console.log(`  ║   → Dashboard:  http://localhost:${PORT}                ║`);

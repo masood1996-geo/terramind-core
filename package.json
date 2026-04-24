@@ -1,7 +1,7 @@
 {
   "name": "terramind-core",
-  "version": "4.1.0",
-  "description": "TerraMind Core — Global disaster intelligence platform. Real-time aggregation of USGS Earthquakes, NASA EONET Wildfires/Storms, NOAA Weather Alerts, NASA FIRMS Fire Detection, and GlobalBuildingAtlas building exposure into a unified API with interactive dashboard and AI-powered GeoScience assistant.",
+  "version": "4.2.0",
+  "description": "TerraMind Core — Global disaster intelligence platform. Real-time aggregation of USGS Earthquakes, NASA EONET Wildfires/Storms, NOAA Weather Alerts, NASA FIRMS Fire Detection, GDACS Alerts, and GlobalBuildingAtlas building exposure into a unified API with interactive dashboard and AI-powered GeoScience assistant.",
   "main": "dist/api/server.js",
   "scripts": {
     "setup": "node setup.js",
@@ -24,6 +24,7 @@
     "eonet",
     "noaa",
     "firms",
+    "gdacs",
     "buildings",
     "globalbuildingatlas",
     "satellite",
