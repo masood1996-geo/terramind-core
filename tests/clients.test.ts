@@ -3,9 +3,11 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { USGSClient, USGSGeoJSONResponse } from '../src/clients/usgs';
 import { NASAClient, EONETResponse } from '../src/clients/nasa';
+import { GDACSClient, GDACSFeedResponse } from '../src/clients/gdacs';
 import {
   normalizeUSGSFeature,
   normalizeEONETEvent,
+  normalizeGDACSFeature,
   normalizeAll,
   GlobalDisasterEventSchema,
 } from '../src/pipeline/normalizer';
@@ -158,6 +160,69 @@ const mockNASAResponse: EONETResponse = {
   ],
 };
 
+const mockGDACSResponse: GDACSFeedResponse = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      bbox: [123.9891, -8.4704, 123.9891, -8.4704],
+      geometry: {
+        type: 'Point',
+        coordinates: [123.9891, -8.4704],
+      },
+      properties: {
+        eventtype: 'EQ',
+        eventid: 1537227,
+        episodeid: 1701999,
+        name: 'Earthquake in Indonesia',
+        description: 'Earthquake in Indonesia',
+        alertlevel: 'Green',
+        alertscore: 1,
+        episodealertlevel: 'Green',
+        episodealertscore: 0,
+        istemporary: 'false',
+        iscurrent: 'true',
+        country: 'Indonesia',
+        fromdate: '2026-04-24T16:10:57',
+        todate: '2026-04-24T16:10:57',
+        datemodified: '2026-04-24T16:51:24',
+        iso3: 'IDN',
+        source: 'NEIC',
+        url: {
+          report: 'https://www.gdacs.org/report.aspx?eventid=1537227&episodeid=1701999&eventtype=EQ',
+          details: 'https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=EQ&eventid=1537227',
+        },
+        affectedcountries: [
+          { iso2: 'ID', iso3: 'IDN', countryname: 'Indonesia' },
+        ],
+        severitydata: {
+          severity: 4.5,
+          severitytext: 'Magnitude 4.5M, Depth:172.359km',
+          severityunit: 'M',
+        },
+      },
+    },
+    {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [-72.5, 18.9],
+      },
+      properties: {
+        eventtype: 'TC',
+        eventid: 'TC1001230',
+        episodeid: '1',
+        name: 'Tropical Cyclone Example',
+        alertlevel: 'Red',
+        iscurrent: 'true',
+        fromdate: '2026-04-24T10:00:00',
+        country: 'Haiti',
+        source: 'GDACS',
+      },
+    },
+  ],
+};
+
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('USGSClient', () => {
@@ -266,6 +331,37 @@ describe('NASAClient', () => {
   });
 });
 
+describe('GDACSClient', () => {
+  let mock: MockAdapter;
+  let client: GDACSClient;
+
+  beforeEach(() => {
+    const instance = axios.create({ baseURL: GDACSClient.BASE_URL });
+    mock = new MockAdapter(instance);
+    client = new GDACSClient(instance);
+  });
+
+  it('should fetch active GDACS alerts', async () => {
+    mock.onGet(GDACSClient.FEED_PATH).reply(200, mockGDACSResponse);
+
+    const alerts = await client.fetchActiveAlerts();
+
+    expect(alerts).toHaveLength(2);
+    expect(alerts[0].properties.eventtype).toBe('EQ');
+    expect(alerts[0].properties.alertlevel).toBe('Green');
+  });
+
+  it('should throw on invalid GDACS feed shape', async () => {
+    mock.onGet(GDACSClient.FEED_PATH).reply(200, {
+      type: 'FeatureCollection',
+    });
+
+    await expect(client.fetchActiveAlerts()).rejects.toThrow(
+      'missing "features" array',
+    );
+  });
+});
+
 describe('Normalizer', () => {
   it('should normalize a USGS feature into a valid GlobalDisasterEvent', () => {
     const feature = mockUSGSResponse.features[0];
@@ -308,6 +404,30 @@ describe('Normalizer', () => {
     expect(result.success).toBe(true);
   });
 
+  it('should normalize a GDACS alert into a valid GlobalDisasterEvent', () => {
+    const alert = mockGDACSResponse.features[0];
+    const normalized = normalizeGDACSFeature(alert);
+
+    expect(normalized.id).toBe('gdacs-EQ-1537227-1701999');
+    expect(normalized.source).toBe('gdacs');
+    expect(normalized.severity).toBe('minor'); // Green alert level
+    expect(normalized.coordinates.longitude).toBe(123.9891);
+    expect(normalized.coordinates.latitude).toBe(-8.4704);
+    expect(normalized.eventType).toBe('earthquake');
+    expect(normalized.metadata?.alertLevel).toBe('Green');
+
+    const result = GlobalDisasterEventSchema.safeParse(normalized);
+    expect(result.success).toBe(true);
+  });
+
+  it('should map Red GDACS alerts to critical severity', () => {
+    const alert = mockGDACSResponse.features[1];
+    const normalized = normalizeGDACSFeature(alert);
+
+    expect(normalized.severity).toBe('critical');
+    expect(normalized.eventType).toBe('tropical-cyclone');
+  });
+
   it('should classify storm severity based on wind speed (kts)', () => {
     const storm = mockNASAResponse.events[1];
     const normalized = normalizeEONETEvent(storm);
@@ -329,9 +449,12 @@ describe('Normalizer', () => {
     const merged = normalizeAll(
       mockUSGSResponse.features,
       mockNASAResponse.events,
+      [],
+      [],
+      mockGDACSResponse.features,
     );
 
-    expect(merged.length).toBe(4);
+    expect(merged.length).toBe(6);
 
     // Verify descending timestamp order
     for (let i = 1; i < merged.length; i++) {
@@ -345,6 +468,9 @@ describe('Normalizer', () => {
     const merged = normalizeAll(
       mockUSGSResponse.features,
       mockNASAResponse.events,
+      [],
+      [],
+      mockGDACSResponse.features,
     );
 
     for (const event of merged) {

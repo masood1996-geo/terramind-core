@@ -1,14 +1,14 @@
 <div align="center">
 
 **Stop juggling disconnected government feeds.** 
-TerraMind fuses USGS Earthquakes, NASA EONET Wildfires, NOAA Weather Alerts, NASA FIRMS Satellite Fire Detection, and [GlobalBuildingAtlas](https://github.com/zhu-xlab/GlobalBuildingAtlas) building exposure into one real-time dashboard with an AI-powered GeoScience assistant — all free, all open source.
+TerraMind fuses USGS Earthquakes, NASA EONET Wildfires, NOAA Weather Alerts, NASA FIRMS Satellite Fire Detection, GDACS disaster alerts, and [GlobalBuildingAtlas](https://github.com/zhu-xlab/GlobalBuildingAtlas) building exposure into one real-time dashboard with an AI-powered GeoScience assistant — all free, all open source.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.x-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![AI Powered](https://img.shields.io/badge/AI-GeoScience%20Chat-FF6F00?style=for-the-badge&logo=openai&logoColor=white)]()
-[![Data Sources](https://img.shields.io/badge/Sources-5%20Data%20APIs-blueviolet?style=for-the-badge)]()
+[![Data Sources](https://img.shields.io/badge/Sources-6%20Data%20APIs-blueviolet?style=for-the-badge)]()
 [![Live Demo](https://img.shields.io/badge/%F0%9F%A4%97_Demo-Live_on_HuggingFace-orange?style=for-the-badge)](https://huggingface.co/spaces/masood1996/terramind-core)
 
 ---
@@ -29,7 +29,7 @@ TerraMind fuses USGS Earthquakes, NASA EONET Wildfires, NOAA Weather Alerts, NAS
 ## 🎮 Try it Live
 > **No installation needed — [try the live demo on Hugging Face](https://huggingface.co/spaces/masood1996/terramind-core)**
 >
-> Real earthquakes from USGS, real wildfires from NASA EONET, real weather alerts from NOAA — updated every 2 minutes.
+> Real earthquakes from USGS, real wildfires from NASA EONET/FIRMS, real weather alerts from NOAA, and coordinated global alerts from GDACS — updated every 2 minutes.
 
 ---
 
@@ -40,7 +40,7 @@ Commercial disaster platforms charge $25k–$50k/year for what TerraMind does fo
 | ❌ $50k+/year for DisasterAWARE | ✅ **100% free** — MIT license |
 | ❌ Proprietary, closed data | ✅ Open government APIs, full transparency |
 | ❌ No satellite imagery guidance | ✅ **AI-powered GeoScience assistant** with band/index recommendations |
-| ❌ Separate tools for each hazard type | ✅ **5 sources unified** in one schema |
+| ❌ Separate tools for each hazard type | ✅ **6 sources unified** in one schema |
 | ❌ No infrastructure impact data | ✅ **Building exposure analysis** via GlobalBuildingAtlas |
 | ❌ No real-time streaming | ✅ **SSE push** — live updates without polling |
 | ❌ Complex setup, vendor lock-in | ✅ **One command** to install and run |
@@ -60,7 +60,7 @@ The interactive setup wizard will:
 3. **Install dependencies**
 4. **Start the server** — dashboard opens at `http://localhost:4100`
 
-> **No API keys needed to start!** USGS, NASA EONET, NOAA, and GlobalBuildingAtlas work without any keys. The wizard optionally enables FIRMS fire detection and the AI assistant.
+> **No API keys needed to start!** USGS, NASA EONET, NOAA, GDACS, and GlobalBuildingAtlas work without any keys. The wizard optionally enables FIRMS fire detection and the AI assistant.
 
 <details>
 <summary><strong>Manual Setup (Advanced)</strong></summary>
@@ -88,7 +88,7 @@ pnpm dev                # → http://localhost:4100
 
 | Feature | Description |
 |---------|-------------|
-| 🌍 **5-Source Aggregation** | USGS earthquakes, NASA EONET wildfires/storms, NOAA weather alerts, NASA FIRMS fire detections, and GlobalBuildingAtlas building exposure — merged into one feed |
+| 🌍 **6-Source Aggregation** | USGS earthquakes, NASA EONET wildfires/storms, NOAA weather alerts, NASA FIRMS fire detections, GDACS global disaster alerts, and GlobalBuildingAtlas building exposure — merged into one feed |
 | 📊 **Unified Schema** | Heterogeneous government data normalized into `GlobalDisasterEvent` with Zod validation |
 | 🔴 **Real-Time SSE** | Server-Sent Events push live data updates — no polling, no WebSockets |
 | 🤖 **AI GeoScience Chat** | Ask about satellite bands, spectral indices, processing workflows — powered by Kilo Gateway with built-in fallback |
@@ -155,6 +155,7 @@ pnpm dev                # → http://localhost:4100
 | 🟢 **NASA EONET** | [Earth Observatory Natural Event Tracker v3](https://eonet.gsfc.nasa.gov/docs/v3) | Wildfires & severe storms | 🌍 Global | No |
 | 🟢 **NOAA NWS** | [National Weather Service API](https://www.weather.gov/documentation/services-web-api) | Tornado, hurricane, flood, tsunami warnings | 🇺🇸 USA | No |
 | 🟡 **NASA FIRMS** | [Fire Information for Resource Management](https://firms.modaps.eosdis.nasa.gov/api/area/) | Satellite fire detections (VIIRS, 375m) | 🌍 Global (11 regions) | Free key |
+| 🟢 **GDACS** | [Global Disaster Awareness and Coordination System](https://data.gdacs.org/) | Coordinated multi-hazard alerts with Green/Orange/Red alert levels | 🌍 Global | No |
 | 🟢 **GBA** | [GlobalBuildingAtlas WFS](https://github.com/zhu-xlab/GlobalBuildingAtlas) | Building footprints, heights & exposure | 🌍 Global | No |
 | 🟢 **OSM (Fallback)** | [OpenStreetMap Overpass](https://overpass-api.de/) | Fallback building footprint indexing | 🌍 Global | No |
 
@@ -168,7 +169,7 @@ pnpm dev                # → http://localhost:4100
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/events` | Merged, normalized disaster events |
-| `GET` | `/api/events?source=usgs` | Filter by source (`usgs`, `nasa-eonet`, `noaa-nws`, `nasa-firms`) |
+| `GET` | `/api/events?source=usgs` | Filter by source (`usgs`, `nasa-eonet`, `noaa-nws`, `nasa-firms`, `gdacs`) |
 | `GET` | `/api/events?severity=critical` | Filter by severity (`minor`, `moderate`, `major`, `critical`) |
 | `GET` | `/api/events?timeRange=week` | Earthquake time window (`hour`, `day`, `week`) |
 | `GET` | `/api/buildings?lat=35.89&lon=-117.6` | Building exposure around coordinates (GBA) |
@@ -191,7 +192,8 @@ pnpm dev                # → http://localhost:4100
     "usgs": { "status": "ok", "count": 15 },
     "nasa": { "status": "ok", "count": 3 },
     "noaa": { "status": "ok", "count": 12 },
-    "firms": { "status": "ok", "count": 12 }
+    "firms": { "status": "ok", "count": 12 },
+    "gdacs": { "status": "ok", "count": 46 }
   },
   "events": [
     {
@@ -298,7 +300,9 @@ terramind-core/
 │   │   ├── nasa.ts          # NASA EONET wildfire & storm client
 │   │   ├── noaa.ts          # NOAA NWS severe weather alert client
 │   │   ├── firms.ts         # NASA FIRMS satellite fire detection (global)
-│   │   └── gba.ts           # GlobalBuildingAtlas WFS building exposure
+│   │   ├── gdacs.ts         # GDACS global disaster alert client
+│   │   ├── gba.ts           # GlobalBuildingAtlas WFS building exposure
+│   │   └── osm.ts           # OpenStreetMap building exposure fallback
 │   ├── pipeline/
 │   │   ├── normalizer.ts    # Multi-source → GlobalDisasterEvent schema
 │   │   └── delta.ts         # Change detection / diff engine

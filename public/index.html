@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TerraMind Core — Global Disaster Intelligence</title>
-  <meta name="description" content="Real-time global disaster event aggregation from USGS Earthquake and NASA EONET data sources.">
+  <meta name="description" content="Real-time global disaster event aggregation from USGS, NASA, NOAA, FIRMS, and GDACS data sources.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -27,7 +27,7 @@
         <div>
           <h1>TerraMind Core</h1>
         </div>
-        <span class="version-badge">v4.1.0</span>
+        <span class="version-badge">v4.2.0</span>
       </div>
       <div class="header-meta">
         <div class="status-dot" id="status-dot"></div>
@@ -63,6 +63,11 @@
         <div class="stat-label">NASA FIRMS</div>
         <div class="stat-value" id="stat-firms-val">—</div>
         <div class="stat-sub" id="stat-firms-sub"></div>
+      </div>
+      <div class="stat-card gdacs-source" id="stat-gdacs">
+        <div class="stat-label">GDACS Alerts</div>
+        <div class="stat-value" id="stat-gdacs-val">—</div>
+        <div class="stat-sub" id="stat-gdacs-sub"></div>
       </div>
       <div class="stat-card critical" id="stat-critical">
         <div class="stat-label">Critical / Major</div>
@@ -194,6 +199,9 @@
         </button>
         <button class="filter-chip" data-filter="nasa-firms">
           🔥 FIRMS <span class="chip-count" id="count-firms">0</span>
+        </button>
+        <button class="filter-chip" data-filter="gdacs">
+          GDACS <span class="chip-count" id="count-gdacs">0</span>
         </button>
       </div>
       <div class="toolbar-controls">
@@ -429,6 +437,7 @@
       const nasaCount = data.sources?.nasa?.count || 0;
       const noaaCount = data.sources?.noaa?.count || 0;
       const firmsCount = data.sources?.firms?.count || 0;
+      const gdacsCount = data.sources?.gdacs?.count || 0;
 
       animateNumber('stat-usgs-val', usgsCount);
       $('#stat-usgs-sub').textContent = `Status: ${data.sources?.usgs?.status || 'unknown'}`;
@@ -439,6 +448,9 @@
       animateNumber('stat-firms-val', firmsCount);
       const firmsStatus = data.sources?.firms?.status || 'disabled';
       $('#stat-firms-sub').textContent = firmsStatus === 'disabled' ? 'No API key' : `Status: ${firmsStatus}`;
+
+      animateNumber('stat-gdacs-val', gdacsCount);
+      $('#stat-gdacs-sub').textContent = `Status: ${data.sources?.gdacs?.status || 'unknown'}`;
 
       const criticalMajor = allEvents.filter(e => e.severity === 'critical' || e.severity === 'major').length;
       animateNumber('stat-critical-val', criticalMajor);
@@ -470,6 +482,24 @@
       requestAnimationFrame(tick);
     }
 
+    function getSourceClass(source) {
+      return ['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms', 'gdacs'].includes(source)
+        ? source
+        : 'nasa-eonet';
+    }
+
+    function getSourceLabel(source, withIcon = false) {
+      const labels = {
+        usgs: { short: 'USGS', icon: '🔬 USGS' },
+        'nasa-eonet': { short: 'NASA', icon: '🛰️ NASA' },
+        'noaa-nws': { short: 'NOAA', icon: '🌩️ NOAA' },
+        'nasa-firms': { short: 'FIRMS', icon: '🔥 FIRMS' },
+        gdacs: { short: 'GDACS', icon: 'GDACS' },
+      };
+      const label = labels[source] || { short: source, icon: source };
+      return withIcon ? label.icon : label.short;
+    }
+
     // ─── Update Filter Counts ───────────────────────────────────────────────
     function updateFilterCounts() {
       $('#count-all').textContent = allEvents.length;
@@ -481,6 +511,7 @@
       $('#count-nasa').textContent = allEvents.filter(e => e.source === 'nasa-eonet').length;
       $('#count-noaa').textContent = allEvents.filter(e => e.source === 'noaa-nws').length;
       $('#count-firms').textContent = allEvents.filter(e => e.source === 'nasa-firms').length;
+      $('#count-gdacs').textContent = allEvents.filter(e => e.source === 'gdacs').length;
       updateCategoryCounts();
     }
 
@@ -523,6 +554,8 @@
         filtered = filtered.filter(e => e.source === 'noaa-nws');
       } else if (currentFilter === 'nasa-firms') {
         filtered = filtered.filter(e => e.source === 'nasa-firms');
+      } else if (currentFilter === 'gdacs') {
+        filtered = filtered.filter(e => e.source === 'gdacs');
       } else if (currentFilter !== 'all') {
         filtered = filtered.filter(e => e.severity === currentFilter);
       }
@@ -608,11 +641,11 @@
     function renderEventCard(event, index) {
       const timeAgo = getTimeAgo(event.timestamp);
       const coords = `${event.coordinates.latitude.toFixed(3)}°, ${event.coordinates.longitude.toFixed(3)}°`;
-      const sourceClass = event.source === 'usgs' ? 'usgs' : event.source === 'noaa-nws' ? 'noaa-nws' : event.source === 'nasa-firms' ? 'nasa-firms' : 'nasa-eonet';
+      const sourceClass = getSourceClass(event.source);
       const earthUrl = getGoogleEarthUrl(event.coordinates.latitude, event.coordinates.longitude);
       const isCriticalOrMajor = event.severity === 'critical' || event.severity === 'major';
       const newsUrl = getGoogleNewsUrl(event);
-      const sourceLabel = event.source === 'usgs' ? '🔬 USGS' : event.source === 'noaa-nws' ? '🌩️ NOAA' : event.source === 'nasa-firms' ? '🔥 FIRMS' : '🛰️ NASA';
+      const sourceLabel = getSourceLabel(event.source, true);
 
       // Extract metadata details
       let detailsHtml = '';
@@ -709,6 +742,32 @@
           </div>
         `;
       }
+      if (event.source === 'gdacs' && event.metadata) {
+        const alertLevel = event.metadata.alertLevel || '—';
+        const country = event.metadata.country || '—';
+        const severityText = event.metadata.severityText || '—';
+        const source = event.metadata.source || 'GDACS';
+        detailsHtml = `
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-label">Alert Level</span>
+              <span class="detail-value">${escapeHtml(String(alertLevel))}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Country</span>
+              <span class="detail-value">${escapeHtml(String(country))}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Hazard Detail</span>
+              <span class="detail-value" title="${escapeHtml(String(severityText))}">${escapeHtml(String(severityText).length > 42 ? String(severityText).substring(0, 42) + '…' : String(severityText))}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Source</span>
+              <span class="detail-value">${escapeHtml(String(source))}</span>
+            </div>
+          </div>
+        `;
+      }
 
       return `
         <article class="event-card severity-${event.severity}" style="animation-delay: ${Math.min(index * 40, 600)}ms" data-event-id="${escapeHtml(event.id)}">
@@ -757,8 +816,8 @@
             </thead>
             <tbody>
               ${events.map(event => {
-                const sourceClass = event.source === 'usgs' ? 'usgs' : event.source === 'noaa-nws' ? 'noaa-nws' : event.source === 'nasa-firms' ? 'nasa-firms' : 'nasa-eonet';
-                const sourceLabel = event.source === 'usgs' ? 'USGS' : event.source === 'noaa-nws' ? 'NOAA' : event.source === 'nasa-firms' ? 'FIRMS' : 'NASA';
+                const sourceClass = getSourceClass(event.source);
+                const sourceLabel = getSourceLabel(event.source);
                 const coords = `${event.coordinates.latitude.toFixed(2)}°, ${event.coordinates.longitude.toFixed(2)}°`;
                 const earthUrl = getGoogleEarthUrl(event.coordinates.latitude, event.coordinates.longitude);
                 const isCriticalOrMajor = event.severity === 'critical' || event.severity === 'major';
@@ -826,7 +885,7 @@
         <div class="modal-tab-content active" id="tab-overview">
           <div class="modal-header-row">
             <span class="severity-badge ${event.severity}" style="font-size:0.8rem">${event.severity.toUpperCase()}</span>
-            <span class="source-tag ${event.source === 'usgs' ? 'usgs' : event.source === 'noaa-nws' ? 'noaa-nws' : event.source === 'nasa-firms' ? 'nasa-firms' : 'nasa-eonet'}">${event.source === 'usgs' ? 'USGS' : event.source === 'noaa-nws' ? 'NOAA' : event.source === 'nasa-firms' ? 'FIRMS' : 'NASA'}</span>
+            <span class="source-tag ${getSourceClass(event.source)}">${getSourceLabel(event.source)}</span>
           </div>
           <h2 class="modal-title">${escapeHtml(event.title)}</h2>
           <div class="modal-time">${new Date(event.timestamp).toLocaleString()} (${getTimeAgo(event.timestamp)})</div>
@@ -1315,6 +1374,10 @@
         query = event.eventType + ' ' + shortArea;
       } else if (event.source === 'usgs') {
         query = event.title.replace(/^M\s+[\d.]+\s*-\s*/, '') + ' earthquake';
+      } else if (event.source === 'gdacs') {
+        const country = event.metadata?.country || '';
+        const alertLevel = event.metadata?.alertLevel || '';
+        query = `${event.title} ${event.eventType} ${country} ${alertLevel} alert`;
       } else {
         // NASA EONET
         query = event.title;
@@ -1621,7 +1684,7 @@
 
         const earthUrl = getGoogleEarthUrl(lat, lng);
         const timeAgo = getTimeAgo(event.timestamp);
-        const sourceLabel = event.source === 'usgs' ? 'USGS' : event.source === 'noaa-nws' ? 'NOAA' : event.source === 'nasa-firms' ? 'FIRMS' : 'NASA';
+        const sourceLabel = getSourceLabel(event.source);
 
         marker.bindPopup(`
           <div class="map-popup-title">${escapeHtml(event.title)}</div>
@@ -1690,15 +1753,15 @@
       }
 
       // Source distribution
-      const srcCounts = { usgs: 0, 'nasa-eonet': 0, 'noaa-nws': 0 };
+      const srcCounts = { usgs: 0, 'nasa-eonet': 0, 'noaa-nws': 0, 'nasa-firms': 0, gdacs: 0 };
       filtered.forEach(e => { srcCounts[e.source] = (srcCounts[e.source] || 0) + 1; });
 
       const srcData = {
-        labels: ['USGS Earthquakes', 'NASA EONET', 'NOAA Weather'],
+        labels: ['USGS', 'NASA EONET', 'NOAA', 'FIRMS', 'GDACS'],
         datasets: [{
-          data: [srcCounts.usgs, srcCounts['nasa-eonet'], srcCounts['noaa-nws']],
-          backgroundColor: ['rgba(16, 185, 129, 0.7)', 'rgba(139, 92, 246, 0.7)', 'rgba(14, 165, 233, 0.7)'],
-          borderColor: ['#10b981', '#8b5cf6', '#0ea5e9'],
+          data: [srcCounts.usgs, srcCounts['nasa-eonet'], srcCounts['noaa-nws'], srcCounts['nasa-firms'], srcCounts.gdacs],
+          backgroundColor: ['rgba(16, 185, 129, 0.7)', 'rgba(139, 92, 246, 0.7)', 'rgba(14, 165, 233, 0.7)', 'rgba(249, 115, 22, 0.7)', 'rgba(245, 158, 11, 0.7)'],
+          borderColor: ['#10b981', '#8b5cf6', '#0ea5e9', '#f97316', '#f59e0b'],
           borderWidth: 1,
           borderRadius: 6,
         }],

@@ -3,6 +3,7 @@ import type { USGSFeature } from '../clients/usgs';
 import type { EONETEvent } from '../clients/nasa';
 import type { NOAAAlert } from '../clients/noaa';
 import type { FIRMSDetection } from '../clients/firms';
+import type { GDACSFeature } from '../clients/gdacs';
 
 // ─── Building Exposure Schema (GlobalBuildingAtlas) ─────────────────────────
 
@@ -34,7 +35,7 @@ export const GlobalDisasterEventSchema = z.object({
   id: z.string(),
 
   /** Data source identifier */
-  source: z.enum(['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms']),
+  source: z.enum(['usgs', 'nasa-eonet', 'noaa-nws', 'nasa-firms', 'gdacs']),
 
   /** Human-readable event title */
   title: z.string(),
@@ -281,6 +282,71 @@ function classifyFIRMSSeverity(frp: number): GlobalDisasterEvent['severity'] {
   return 'minor';
 }
 
+function classifyGDACSAlertLevel(alertLevel?: string): GlobalDisasterEvent['severity'] {
+  switch (alertLevel?.toLowerCase()) {
+    case 'red': return 'critical';
+    case 'orange': return 'major';
+    case 'green': return 'minor';
+    default: return 'unknown';
+  }
+}
+
+const GDACS_EVENT_TYPES: Record<string, string> = {
+  EQ: 'earthquake',
+  TC: 'tropical-cyclone',
+  FL: 'flood',
+  VO: 'volcano',
+  DR: 'drought',
+  WF: 'wildfire',
+};
+
+function toISOStringOrNow(value?: string): string {
+  if (!value) return new Date().toISOString();
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+function collectCoordinatePairs(value: unknown, pairs: Array<[number, number]>): void {
+  if (!Array.isArray(value)) return;
+
+  if (typeof value[0] === 'number' && typeof value[1] === 'number') {
+    pairs.push([value[0], value[1]]);
+    return;
+  }
+
+  for (const child of value) {
+    collectCoordinatePairs(child, pairs);
+  }
+}
+
+function getGDACSCoordinates(feature: GDACSFeature): { longitude: number; latitude: number } {
+  const pairs: Array<[number, number]> = [];
+  collectCoordinatePairs(feature.geometry.coordinates, pairs);
+
+  if (pairs.length > 0) {
+    const sum = pairs.reduce(
+      (acc, [longitude, latitude]) => ({
+        longitude: acc.longitude + longitude,
+        latitude: acc.latitude + latitude,
+      }),
+      { longitude: 0, latitude: 0 },
+    );
+    return {
+      longitude: sum.longitude / pairs.length,
+      latitude: sum.latitude / pairs.length,
+    };
+  }
+
+  if (feature.bbox && feature.bbox.length >= 4) {
+    return {
+      longitude: (feature.bbox[0] + feature.bbox[2]) / 2,
+      latitude: (feature.bbox[1] + feature.bbox[3]) / 2,
+    };
+  }
+
+  return { longitude: 0, latitude: 0 };
+}
+
 /**
  * Normalizes a single FIRMS fire detection into a GlobalDisasterEvent.
  */
@@ -313,6 +379,51 @@ export function normalizeFIRMSDetection(fire: FIRMSDetection, index: number): Gl
   return GlobalDisasterEventSchema.parse(normalized);
 }
 
+/**
+ * Normalizes a single GDACS alert into a GlobalDisasterEvent.
+ */
+export function normalizeGDACSFeature(feature: GDACSFeature): GlobalDisasterEvent {
+  const props = feature.properties;
+  const { longitude, latitude } = getGDACSCoordinates(feature);
+  const eventType = GDACS_EVENT_TYPES[props.eventtype] ?? props.eventtype.toLowerCase();
+  const reportUrl = props.url?.report ?? props.url?.details;
+
+  const normalized: GlobalDisasterEvent = {
+    id: `gdacs-${props.eventtype}-${props.eventid}-${props.episodeid ?? 'latest'}`,
+    source: 'gdacs',
+    title: props.name || props.description || `GDACS ${eventType} alert`,
+    severity: classifyGDACSAlertLevel(props.alertlevel),
+    coordinates: { longitude, latitude },
+    timestamp: toISOStringOrNow(props.fromdate ?? props.datemodified ?? props.todate),
+    eventType,
+    metadata: {
+      gdacsEventType: props.eventtype,
+      alertLevel: props.alertlevel,
+      alertScore: props.alertscore,
+      episodeAlertLevel: props.episodealertlevel,
+      episodeAlertScore: props.episodealertscore,
+      country: props.country,
+      iso3: props.iso3,
+      affectedCountries: props.affectedcountries?.map((country) => ({
+        iso2: country.iso2,
+        iso3: country.iso3,
+        name: country.countryname,
+      })),
+      source: props.source,
+      sourceId: props.sourceid,
+      severityValue: props.severitydata?.severity,
+      severityText: props.severitydata?.severitytext,
+      severityUnit: props.severitydata?.severityunit,
+      modified: props.datemodified,
+      url: reportUrl,
+      detailsUrl: props.url?.details,
+      geometryUrl: props.url?.geometry,
+    },
+  };
+
+  return GlobalDisasterEventSchema.parse(normalized);
+}
+
 // ─── Batch Normalizer ───────────────────────────────────────────────────────
 
 /**
@@ -328,6 +439,7 @@ export function normalizeAll(
   eonetEvents: EONETEvent[],
   noaaAlerts: NOAAAlert[] = [],
   firmsDetections: FIRMSDetection[] = [],
+  gdacsFeatures: GDACSFeature[] = [],
 ): GlobalDisasterEvent[] {
   const normalizedUSGS = usgsFeatures.flatMap((f) => {
     try {
@@ -365,7 +477,22 @@ export function normalizeAll(
     }
   });
 
-  const allEvents = [...normalizedUSGS, ...normalizedEONET, ...normalizedNOAA, ...normalizedFIRMS];
+  const normalizedGDACS = gdacsFeatures.flatMap((f) => {
+    try {
+      return [normalizeGDACSFeature(f)];
+    } catch (err: any) {
+      console.warn(`[normalizer] Skipped GDACS alert ${f.properties?.eventid}:`, err.message);
+      return [];
+    }
+  });
+
+  const allEvents = [
+    ...normalizedUSGS,
+    ...normalizedEONET,
+    ...normalizedNOAA,
+    ...normalizedFIRMS,
+    ...normalizedGDACS,
+  ];
 
   // Sort by timestamp descending (most recent first)
   allEvents.sort(

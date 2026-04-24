@@ -88,6 +88,8 @@
   --source-noaa-bg: rgba(14, 165, 233, 0.1);
   --source-firms: #f97316;
   --source-firms-bg: rgba(249, 115, 22, 0.1);
+  --source-gdacs: #f59e0b;
+  --source-gdacs-bg: rgba(245, 158, 11, 0.1);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -276,6 +278,7 @@ body {
 .stat-card.usgs-source { border-bottom: 2px solid var(--source-usgs); }
 .stat-card.nasa-source { border-bottom: 2px solid var(--source-nasa); }
 .stat-card.firms-source { border-bottom: 2px solid var(--source-firms); }
+.stat-card.gdacs-source { border-bottom: 2px solid var(--source-gdacs); }
 .stat-card.critical { border-bottom: 2px solid var(--color-critical); }
 .stat-card.critical .stat-value { color: var(--color-critical); }
 
@@ -581,6 +584,7 @@ body {
 .source-tag.nasa-eonet { background: var(--source-nasa-bg); color: var(--source-nasa); }
 .source-tag.noaa-nws { background: var(--source-noaa-bg); color: var(--source-noaa); }
 .source-tag.nasa-firms { background: var(--source-firms-bg); color: var(--source-firms); }
+.source-tag.gdacs { background: var(--source-gdacs-bg); color: var(--source-gdacs); }
 
 /* ─── Event Cards ───────────────────────────────────────────────────────── */
 .events-grid {
